@@ -55,7 +55,10 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Settings|Als Character Example", Meta = (DisplayThumbnail = false))
 	TObjectPtr<UInputAction> ViewModeAction;
-
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Settings|Als Character Example", Meta = (DisplayThumbnail = false))
+	TObjectPtr<UInputAction> StatusLockAction;
+	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Settings|Als Character Example", Meta = (DisplayThumbnail = false))
 	TObjectPtr<UInputAction> SwitchShoulderAction;
 
@@ -112,6 +115,8 @@ private:
 	virtual void Input_OnViewMode();
 
 	virtual void Input_OnSwitchShoulder();
+	
+	virtual void Input_OnSwitchStatusLock();
 
 	// Debug
 

@@ -85,6 +85,7 @@ void AAlsCharacterExample::SetupPlayerInputComponent(UInputComponent* Input)
 		EnhancedInput->BindAction(RotationModeAction, ETriggerEvent::Triggered, this, &ThisClass::Input_OnRotationMode);
 		EnhancedInput->BindAction(ViewModeAction, ETriggerEvent::Triggered, this, &ThisClass::Input_OnViewMode);
 		EnhancedInput->BindAction(SwitchShoulderAction, ETriggerEvent::Triggered, this, &ThisClass::Input_OnSwitchShoulder);
+		EnhancedInput->BindAction(StatusLockAction, ETriggerEvent::Triggered, this, &ThisClass::Input_OnSwitchStatusLock);
 	}
 }
 
@@ -217,6 +218,12 @@ void AAlsCharacterExample::Input_OnViewMode()
 void AAlsCharacterExample::Input_OnSwitchShoulder()
 {
 	Camera->SetRightShoulder(!Camera->IsRightShoulder());
+}
+
+void AAlsCharacterExample::Input_OnSwitchStatusLock()
+{
+	UE_LOG( LogTemp, Warning, TEXT("StatusLock: %s"), *StatusLock.ToString());
+	StatusLock=StatusLock == AlsStatusLock::Locking ? AlsStatusLock::Unlocked : AlsStatusLock::Locking;
 }
 
 void AAlsCharacterExample::DisplayDebug(UCanvas* Canvas, const FDebugDisplayInfo& DisplayInfo, float& Unused, float& VerticalLocation)

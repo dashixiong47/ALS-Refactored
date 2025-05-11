@@ -128,6 +128,7 @@ void UAlsAnimationInstance::NativeUpdateAnimation(const float DeltaTime)
 	ViewMode = Character->GetViewMode();
 	LocomotionMode = Character->GetLocomotionMode();
 	RotationMode = Character->GetRotationMode();
+	StatusLock = Character->GetStatusLock();
 	Stance = Character->GetStance();
 	Gait = Character->GetGait();
 	OverlayMode = Character->GetOverlayMode();
@@ -377,7 +378,6 @@ void UAlsAnimationInstance::RefreshView(const float DeltaTime)
 
 	RefreshSpine(ViewAmount * AimingAmount, DeltaTime);
 }
-
 bool UAlsAnimationInstance::IsSpineRotationAllowed()
 {
 	return RotationMode == AlsRotationModeTags::Aiming;
@@ -520,7 +520,7 @@ void UAlsAnimationInstance::RefreshLook()
 	float TargetPitchAngle;
 	float InterpolationSpeed;
 
-	if (RotationMode == AlsRotationModeTags::VelocityDirection)
+	if (RotationMode == AlsRotationModeTags::VelocityDirection || StatusLock==AlsStatusLock::Locking)
 	{
 		// Look towards input direction.
 
@@ -1625,6 +1625,10 @@ void UAlsAnimationInstance::StopQueuedTransitionAndTurnInPlaceAnimations()
 
 bool UAlsAnimationInstance::IsRotateInPlaceAllowed()
 {
+	if(StatusLock==AlsStatusLock::Locking)
+	{
+		return false;
+	}
 	return RotationMode == AlsRotationModeTags::Aiming || ViewMode == AlsViewModeTags::FirstPerson;
 }
 
@@ -1636,7 +1640,7 @@ void UAlsAnimationInstance::RefreshRotateInPlace()
 		return;
 	}
 #endif
-
+	
 	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("UAlsAnimationInstance::RefreshRotateInPlace"),
 	                            STAT_UAlsAnimationInstance_RefreshRotateInPlace, STATGROUP_Als)
 	TRACE_CPUPROFILER_EVENT_SCOPE(__FUNCTION__);
@@ -1709,7 +1713,7 @@ void UAlsAnimationInstance::RefreshTurnInPlace()
 	                            STAT_UAlsAnimationInstance_RefreshTurnInPlace, STATGROUP_Als)
 	TRACE_CPUPROFILER_EVENT_SCOPE(__FUNCTION__);
 
-	if (TurnInPlaceState.bUpdatedThisFrame || !IsValid(Settings))
+	if (TurnInPlaceState.bUpdatedThisFrame || !IsValid(Settings) || StatusLock==AlsStatusLock::Locking)
 	{
 		return;
 	}

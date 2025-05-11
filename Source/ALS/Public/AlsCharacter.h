@@ -61,7 +61,10 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State|Als Character", Transient)
 	FGameplayTag RotationMode{AlsRotationModeTags::ViewDirection};
-
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State|Als Character", Transient)
+	FGameplayTag StatusLock{AlsStatusLock::Unlocked};
+	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State|Als Character", Transient)
 	FGameplayTag Stance{AlsStanceTags::Standing};
 
@@ -242,8 +245,12 @@ protected:
 
 	void RefreshRotationMode();
 
+	
+	// Status Lock
+public:
+	const FGameplayTag& GetStatusLock() const;
+	
 	// Desired Stance
-
 public:
 	const FGameplayTag& GetDesiredStance() const;
 
@@ -638,6 +645,10 @@ inline const FGameplayTag& AAlsCharacter::GetDesiredRotationMode() const
 inline const FGameplayTag& AAlsCharacter::GetRotationMode() const
 {
 	return RotationMode;
+}
+inline const FGameplayTag& AAlsCharacter::GetStatusLock() const
+{
+	return StatusLock;
 }
 
 inline const FGameplayTag& AAlsCharacter::GetDesiredStance() const

@@ -23,6 +23,7 @@ protected:
 	inline static const FName LocationLagZCurve{TEXTVIEW("LocationLagZ")};
 	inline static const FName RotationLagCurve{TEXTVIEW("RotationLag")};
 	inline static const FName FirstPersonOverrideCurve{TEXTVIEW("FirstPersonOverride")};
+	inline static const FName StatusLockCurve{TEXTVIEW("StatusLock")};
 	inline static const FName TraceOverrideCurve{TEXTVIEW("TraceOverride")};
 
 	// Debug
@@ -69,6 +70,9 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "ALS|Camera Constants|Animation Curves", Meta = (ReturnDisplayName = "Curve Name"))
 	static const FName& FirstPersonOverrideCurveName();
+	
+	UFUNCTION(BlueprintPure, Category = "ALS|Camera Constants|Animation Curves", Meta = (ReturnDisplayName = "Curve Name"))
+	static const FName& StatusLockCurveName();
 
 	UFUNCTION(BlueprintPure, Category = "ALS|Camera Constants|Animation Curves", Meta = (ReturnDisplayName = "Curve Name"))
 	static const FName& TraceOverrideCurveName();
@@ -143,6 +147,10 @@ inline const FName& UAlsCameraConstants::RotationLagCurveName()
 inline const FName& UAlsCameraConstants::FirstPersonOverrideCurveName()
 {
 	return FirstPersonOverrideCurve;
+}
+inline const FName& UAlsCameraConstants::StatusLockCurveName()
+{
+	return StatusLockCurve;
 }
 
 inline const FName& UAlsCameraConstants::TraceOverrideCurveName()

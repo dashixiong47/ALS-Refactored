@@ -56,7 +56,7 @@ void UAlsCameraAnimationInstance::NativeUpdateAnimation(const float DeltaTime)
 
 		RotationMode = Character->GetDesiredRotationMode();
 	}
-
+	StatusLock=Character->GetStatusLock();
 	Stance = Character->GetStance();
 	Gait = Character->GetGait();
 	LocomotionAction = Character->GetLocomotionAction();

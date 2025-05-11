@@ -19,6 +19,11 @@ namespace AlsRotationModeTags
 	UE_DEFINE_GAMEPLAY_TAG(Aiming, FName{TEXTVIEW("Als.RotationMode.Aiming")})
 }
 
+namespace AlsStatusLock
+{
+	UE_DEFINE_GAMEPLAY_TAG(Locking, FName{TEXTVIEW("Als.StatusLock.Locking")})
+	UE_DEFINE_GAMEPLAY_TAG(Unlocked, FName{TEXTVIEW("Als.StatusLock.Unlocked")})
+}
 namespace AlsStanceTags
 {
 	UE_DEFINE_GAMEPLAY_TAG(Standing, FName{TEXTVIEW("Als.Stance.Standing")})

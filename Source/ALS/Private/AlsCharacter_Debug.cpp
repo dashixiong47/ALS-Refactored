@@ -283,6 +283,19 @@ void AAlsCharacter::DisplayDebugState(const UCanvas* Canvas, const float Scale,
 
 	VerticalLocation += RowOffset;
 
+	static const auto StatusLockText{
+		FText::AsCultureInvariant(FName::NameToDisplayString(
+			FString{GET_MEMBER_NAME_STRING_VIEW_CHECKED(ThisClass, StatusLock)}, false))
+	};
+
+	Text.Text = StatusLockText;
+	Text.Draw(Canvas->Canvas, {HorizontalLocation, VerticalLocation});
+
+	Text.Text = FText::AsCultureInvariant(FName::NameToDisplayString(UAlsUtility::GetSimpleTagName(StatusLock).ToString(), false));
+	Text.Draw(Canvas->Canvas, {HorizontalLocation + ColumnOffset, VerticalLocation});
+
+	VerticalLocation += RowOffset;
+
 	static const auto DesiredStanceText{
 		FText::AsCultureInvariant(FName::NameToDisplayString(
 			FString{GET_MEMBER_NAME_STRING_VIEW_CHECKED(ThisClass, DesiredStance)}, false))

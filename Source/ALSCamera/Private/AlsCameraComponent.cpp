@@ -1,6 +1,7 @@
 #include "AlsCameraComponent.h"
 
 #include "AlsCameraSettings.h"
+#include "AlsCharacter.h"
 #include "DrawDebugHelpers.h"
 #include "Animation/AnimInstance.h"
 #include "Engine/OverlapResult.h"
@@ -217,6 +218,9 @@ void UAlsCameraComponent::TickCamera(const float DeltaTime, bool bAllowLag)
 	const auto FirstPersonOverride{
 		UAlsMath::Clamp01(GetAnimInstance()->GetCurveValue(UAlsCameraConstants::FirstPersonOverrideCurveName()))
 	};
+	const auto StatusLock{
+		UAlsMath::Clamp01(GetAnimInstance()->GetCurveValue(UAlsCameraConstants::StatusLockCurveName()))
+	};
 
 	if (FAnimWeight::IsFullWeight(FirstPersonOverride))
 	{
@@ -226,7 +230,26 @@ void UAlsCameraComponent::TickCamera(const float DeltaTime, bool bAllowLag)
 		PivotLocation = PivotTargetLocation;
 
 		CameraLocation = GetFirstPersonCameraLocation();
-		CameraRotation = CameraTargetRotation;
+		
+		if (StatusLock)
+		{
+			FRotator ActorRotation = Character->GetActorRotation();
+    
+			// 计算相对旋转
+			FRotator NewRelativeRotation = (CameraTargetRotation - ActorRotation).GetNormalized();
+
+			// 限制相对于角色朝向的 Pitch/Yaw
+			NewRelativeRotation.Pitch = FMath::Clamp(NewRelativeRotation.Pitch, -50.0f, 50.0f);
+			NewRelativeRotation.Yaw = FMath::Clamp(NewRelativeRotation.Yaw, -50.0f, 50.0f);
+
+			// 加回角色方向，得到受限的绝对旋转
+			CameraRotation = (NewRelativeRotation + ActorRotation).GetNormalized();
+		}
+		else
+		{
+			CameraRotation = CameraTargetRotation;
+		}
+
 
 		CameraFieldOfView = bOverrideFieldOfView ? FieldOfViewOverride : Settings->FirstPerson.FieldOfView;
 		return;

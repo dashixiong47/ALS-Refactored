@@ -21,6 +21,11 @@ namespace AlsRotationModeTags
 	ALS_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Aiming)
 }
 
+namespace AlsStatusLock
+{
+	ALS_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Locking)
+	ALS_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Unlocked)
+}
 namespace AlsStanceTags
 {
 	ALS_API UE_DECLARE_GAMEPLAY_TAG_EXTERN(Standing)
