@@ -1537,7 +1537,11 @@ void AAlsCharacter::RefreshGroundedRotation(const float DeltaTime)
 		{
 			return;
 		}
-
+		if (RotationMode == AlsRotationModeTags::Aiming || ViewMode == AlsViewModeTags::FirstPerson)
+		{
+			RefreshGroundedAimingRotation(DeltaTime);
+			return;
+		}
 		if (RotationMode == AlsRotationModeTags::VelocityDirection)
 		{
 			float TargetYawAngle;
@@ -1592,11 +1596,7 @@ void AAlsCharacter::RefreshGroundedRotation(const float DeltaTime)
 			return;
 		}
 
-		if (RotationMode == AlsRotationModeTags::Aiming || ViewMode == AlsViewModeTags::FirstPerson)
-		{
-			RefreshGroundedAimingRotation(DeltaTime);
-			return;
-		}
+		
 
 		RefreshTargetYawAngleUsingActorRotation();
 		return;

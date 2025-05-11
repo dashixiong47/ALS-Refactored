@@ -380,7 +380,7 @@ void UAlsAnimationInstance::RefreshView(const float DeltaTime)
 }
 bool UAlsAnimationInstance::IsSpineRotationAllowed()
 {
-	return RotationMode == AlsRotationModeTags::Aiming;
+	return RotationMode == AlsRotationModeTags::Aiming || ViewMode==AlsViewModeTags::FirstPerson;
 }
 
 void UAlsAnimationInstance::RefreshSpine(const float SpineBlendAmount, const float DeltaTime)
