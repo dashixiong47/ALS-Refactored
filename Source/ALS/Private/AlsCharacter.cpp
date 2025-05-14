@@ -1537,6 +1537,10 @@ void AAlsCharacter::RefreshGroundedRotation(const float DeltaTime)
 		{
 			return;
 		}
+		if(StatusLock==AlsStatusLock::Locking)
+		{
+			return;
+		}
 		if (RotationMode == AlsRotationModeTags::Aiming || ViewMode == AlsViewModeTags::FirstPerson)
 		{
 			RefreshGroundedAimingRotation(DeltaTime);
