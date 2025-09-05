@@ -9,10 +9,12 @@ struct ALS_API FAlsCrouchingSettings
 {
 	GENERATED_BODY()
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ALS", Meta = (ClampMin = 0, ForceUnits = "cm/s"))
+	// 蹲伏动画速度（厘米/秒）
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ALS", Meta = (ClampMin = 0, ForceUnits = "cm/s"), DisplayName="蹲伏动画速度")
 	float AnimatedCrouchSpeed{150.0f};
 
-	// Movement speed to stride blend amount curve.
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ALS")
+	// 步幅混合曲线（速度 → 步幅混合值）
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ALS", DisplayName="步幅混合曲线")
 	TObjectPtr<UCurveFloat> StrideBlendAmountCurve;
+
 };

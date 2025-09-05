@@ -9,26 +9,33 @@ struct ALS_API FAlsRollingSettings
 {
 	GENERATED_BODY()
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ALS")
+	// 翻滚蒙太奇
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ALS", meta = (DisplayName="翻滚蒙太奇"))
 	TObjectPtr<UAnimMontage> Montage;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ALS")
+	// 开始时角色是否下蹲
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ALS", meta = (DisplayName="开始时下蹲"))
 	uint8 bCrouchOnStart : 1 {true};
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ALS")
+	// 开始时是否根据输入方向旋转
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ALS", meta = (DisplayName="开始时旋转至输入方向"))
 	uint8 bRotateToInputOnStart : 1 {true};
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ALS", Meta = (ClampMin = 0))
+	// 旋转插值速度
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ALS", Meta = (ClampMin = 0, DisplayName="旋转插值速度"))
 	float RotationInterpolationSpeed{10.0f};
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ALS")
+	// 落地时是否启动翻滚
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ALS", meta = (DisplayName="落地时启动翻滚"))
 	uint8 bStartRollingOnLand : 1 {true};
 
-	// Rolling will start if the character lands with a speed greater than the specified value.
+	// 当角色落地速度超过指定值时启动翻滚
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ALS",
-		Meta = (ClampMin = 0, EditCondition = "bStartRollingOnLand", ForceUnits = "cm/s"))
+		Meta = (ClampMin = 0, EditCondition = "bStartRollingOnLand", ForceUnits = "cm/s", DisplayName="落地翻滚速度阈值"))
 	float RollingOnLandSpeedThreshold{700.0f};
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ALS")
+	// 在空中时是否中断翻滚
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ALS", meta = (DisplayName="空中中断翻滚"))
 	uint8 bInterruptRollingWhenInAir : 1 {true};
+
 };

@@ -7,15 +7,20 @@ struct ALS_API FAlsGeneralAnimationSettings
 {
 	GENERATED_BODY()
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ALS")
+	// 是否使用手部 IK 骨骼
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ALS", DisplayName="使用手部IK骨骼")
 	uint8 bUseHandIkBones : 1 {true};
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ALS")
+	// 是否使用脚部 IK 骨骼
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ALS", DisplayName="使用脚部IK骨骼")
 	uint8 bUseFootIkBones : 1 {true};
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ALS", Meta = (ClampMin = 0, ForceUnits = "cm/s"))
+	// 移动平滑速度阈值（cm/s）
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ALS", Meta = (ClampMin = 0, ForceUnits = "cm/s"), DisplayName="移动平滑速度阈值")
 	float MovingSmoothSpeedThreshold{150.0f};
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ALS", Meta = (ClampMin = 0))
+	// 倾斜插值速度
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ALS", Meta = (ClampMin = 0), DisplayName="倾斜插值速度")
 	float LeanInterpolationSpeed{4.0f};
+
 };

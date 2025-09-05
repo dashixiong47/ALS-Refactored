@@ -13,46 +13,54 @@ class ALS_API UAlsCharacterSettings : public UDataAsset
 	GENERATED_BODY()
 
 public:
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Settings", Meta = (ClampMin = 0, ForceUnits = "cm/s"))
+	// 移动速度阈值（cm/s）
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Settings", Meta = (ClampMin = 0, ForceUnits = "cm/s"), DisplayName="移动速度阈值")
 	float MovingSpeedThreshold{50.0f};
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Settings")
+	// 空中旋转模式
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Settings", DisplayName="空中旋转模式")
 	EAlsInAirRotationMode InAirRotationMode{EAlsInAirRotationMode::RotateToVelocityOnJump};
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Settings")
+	// 是否允许空中瞄准
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Settings", DisplayName="空中允许瞄准")
 	uint8 bAllowAimingWhenInAir : 1 {true};
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Settings")
+	// 冲刺是否优先于瞄准
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Settings", DisplayName="冲刺优先于瞄准")
 	uint8 bSprintHasPriorityOverAiming : 1 {false};
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Settings")
+	// 冲刺时是否旋转朝向速度方向
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Settings", DisplayName="冲刺时旋转至速度方向")
 	uint8 bRotateToVelocityWhenSprinting : 1 {false};
 
-	// If checked, the character will rotate relative to the object it is standing on in the velocity
-	// direction rotation mode, otherwise the character will ignore that object and keep its world rotation.
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Settings")
+	// 是否继承角色站立物体的旋转（速度方向模式下）
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Settings", DisplayName="继承站立物体旋转（速度方向模式）")
 	uint8 bInheritMovementBaseRotationInVelocityDirectionRotationMode : 1 {false};
 
-	// If checked, the character will rotate towards the direction they want to move, but is not always able to due to obstacles.
-	// This setting is only used if the bIgnoreBaseRotation setting from the character movement component is set to true.
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Settings")
+	// 是否旋转朝向期望的移动方向（速度方向模式下，可能受障碍限制）
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Settings", DisplayName="旋转朝向期望移动方向（速度方向模式）")
 	uint8 bRotateTowardsDesiredVelocityInVelocityDirectionRotationMode : 1 {true};
 
-	// If checked, the character will automatically rotate towards the view direction on any movement input while the actor is not moving.
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Settings")
+	// 是否在未移动时自动朝向视角方向旋转（有移动输入时）
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Settings", DisplayName="未移动时自动朝向视角方向旋转")
 	uint8 bAutoRotateOnAnyInputWhileNotMovingInViewDirectionRotationMode : 1 {true};
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Settings")
+	// 视角设置
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Settings", DisplayName="视角设置")
 	FAlsViewSettings View;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Settings")
+	// 抬高攀爬设置
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Settings", DisplayName="攀爬设置")
 	FAlsGeneralMantlingSettings Mantling;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Settings")
+	// 布娃娃设置
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Settings", DisplayName="布娃娃设置")
 	FAlsRagdollingSettings Ragdolling;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Settings")
+	// 翻滚设置
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Settings", DisplayName="翻滚设置")
 	FAlsRollingSettings Rolling;
+
 
 public:
 	UAlsCharacterSettings();

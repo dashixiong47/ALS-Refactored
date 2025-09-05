@@ -9,24 +9,32 @@ struct ALS_API FAlsDynamicTransitionsSettings
 {
 	GENERATED_BODY()
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ALS", Meta = (ClampMin = 0, ForceUnits = "cm"))
+	// 脚锁距离阈值（厘米）
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ALS", Meta = (ClampMin = 0, ForceUnits = "cm"), DisplayName="脚锁距离阈值")
 	float FootLockDistanceThreshold{8.0f};
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ALS", Meta = (ClampMin = 0, ForceUnits = "s"))
+	// 混合持续时间（秒）
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ALS", Meta = (ClampMin = 0, ForceUnits = "s"), DisplayName="混合持续时间")
 	float BlendDuration{0.2f};
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ALS", Meta = (ClampMin = 0, ForceUnits = "x"))
+	// 播放速率
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ALS", Meta = (ClampMin = 0, ForceUnits = "x"), DisplayName="播放速率")
 	float PlayRate{1.5f};
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ALS")
+	// 站立向左动画序列
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ALS", DisplayName="站立向左动画序列")
 	TObjectPtr<UAnimSequenceBase> StandingLeftSequence;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ALS")
+	// 站立向右动画序列
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ALS", DisplayName="站立向右动画序列")
 	TObjectPtr<UAnimSequenceBase> StandingRightSequence;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ALS")
+	// 蹲下向左动画序列
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ALS", DisplayName="蹲下向左动画序列")
 	TObjectPtr<UAnimSequenceBase> CrouchingLeftSequence;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ALS")
+	// 蹲下向右动画序列
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ALS", DisplayName="蹲下向右动画序列")
 	TObjectPtr<UAnimSequenceBase> CrouchingRightSequence;
+
 };

@@ -69,18 +69,19 @@ class ALS_API UAlsMovementSettings : public UDataAsset
 	GENERATED_BODY()
 
 public:
-	// Range of velocity angle relative to the view direction at which
-	// interpolation from forward speed to backward speed will take place.
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Settings", Meta = (ClampMin = 0, ClampMax = 180, ForceUnits = "deg"))
+	// 速度方向相对于视角方向的角度范围，用于前后速度插值
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Settings", Meta = (ClampMin = 0, ClampMax = 180, ForceUnits = "deg"), DisplayName = "速度角度插值范围")
 	FVector2f VelocityAngleToSpeedInterpolationRange{100.0f, 125.0f};
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Settings", Meta = (ForceInlineRow))
+	// 不同旋转模式下的移动姿态设置
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Settings", Meta = (ForceInlineRow), DisplayName = "旋转模式移动姿态映射")
 	TMap<FGameplayTag, FAlsMovementStanceSettings> RotationModes
 	{
-		{AlsRotationModeTags::VelocityDirection, {}},
+	    {AlsRotationModeTags::VelocityDirection, {}},
 		{AlsRotationModeTags::ViewDirection, {}},
 		{AlsRotationModeTags::Aiming, {}}
 	};
+
 
 public:
 #if WITH_EDITOR

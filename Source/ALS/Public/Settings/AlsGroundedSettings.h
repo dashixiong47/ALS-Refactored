@@ -9,18 +9,24 @@ struct ALS_API FAlsGroundedSettings
 {
 	GENERATED_BODY()
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ALS")
+	// 前向旋转偏航曲线
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ALS", DisplayName="前向旋转偏航曲线")
 	TObjectPtr<UCurveFloat> RotationYawOffsetForwardCurve;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ALS")
+	// 后向旋转偏航曲线
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ALS", DisplayName="后向旋转偏航曲线")
 	TObjectPtr<UCurveFloat> RotationYawOffsetBackwardCurve;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ALS")
+	// 左向旋转偏航曲线
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ALS", DisplayName="左向旋转偏航曲线")
 	TObjectPtr<UCurveFloat> RotationYawOffsetLeftCurve;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ALS")
+	// 右向旋转偏航曲线
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ALS", DisplayName="右向旋转偏航曲线")
 	TObjectPtr<UCurveFloat> RotationYawOffsetRightCurve;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ALS", Meta = (ClampMin = 0))
+	// 速度混合插值速度
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ALS", Meta = (ClampMin = 0), DisplayName="速度混合插值速度")
 	float VelocityBlendInterpolationSpeed{12.0f};
+
 };

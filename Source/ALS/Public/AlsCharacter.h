@@ -24,89 +24,95 @@ class ALS_API AAlsCharacter : public ACharacter
 	GENERATED_BODY()
 
 protected:
-	UPROPERTY(BlueprintReadOnly, Category = "Als Character")
+	UPROPERTY(BlueprintReadOnly, Category = "Als Character", DisplayName = "ALS角色移动组件")
 	TObjectPtr<UAlsCharacterMovementComponent> AlsCharacterMovement;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Settings|Als Character")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Settings|Als Character", DisplayName = "ALS角色设置")
 	TObjectPtr<UAlsCharacterSettings> Settings;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Settings|Als Character")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Settings|Als Character", DisplayName = "ALS角色移动设置")
 	TObjectPtr<UAlsMovementSettings> MovementSettings;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Settings|Als Character|Desired State",
-		ReplicatedUsing = "OnReplicated_DesiredAiming")
+		ReplicatedUsing = "OnReplicated_DesiredAiming", DisplayName = "期望瞄准状态")
 	uint8 bDesiredAiming : 1 {false};
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Settings|Als Character|Desired State", Replicated)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Settings|Als Character|Desired State", Replicated,
+		DisplayName = "期望旋转模式")
 	FGameplayTag DesiredRotationMode{AlsRotationModeTags::ViewDirection};
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Settings|Als Character|Desired State", Replicated)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Settings|Als Character|Desired State", Replicated,
+		DisplayName = "期望姿态")
 	FGameplayTag DesiredStance{AlsStanceTags::Standing};
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Settings|Als Character|Desired State", Replicated)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Settings|Als Character|Desired State", Replicated,
+		DisplayName = "期望步态")
 	FGameplayTag DesiredGait{AlsGaitTags::Running};
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Settings|Als Character|Desired State", Replicated)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Settings|Als Character|Desired State", Replicated,
+		DisplayName = "视角模式")
 	FGameplayTag ViewMode{AlsViewModeTags::ThirdPerson};
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Settings|Als Character|Desired State",
-		ReplicatedUsing = "OnReplicated_OverlayMode")
+		ReplicatedUsing = "OnReplicated_OverlayMode", DisplayName = "覆盖模式")
 	FGameplayTag OverlayMode{AlsOverlayModeTags::Default};
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State|Als Character", Transient, Meta = (ShowInnerProperties))
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State|Als Character", Transient,
+		Meta = (ShowInnerProperties), DisplayName = "动画实例")
 	TWeakObjectPtr<UAlsAnimationInstance> AnimationInstance;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State|Als Character", Transient)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State|Als Character", Transient, DisplayName = "移动模式")
 	FGameplayTag LocomotionMode{AlsLocomotionModeTags::Grounded};
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State|Als Character", Transient)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State|Als Character", Transient, DisplayName = "旋转模式")
 	FGameplayTag RotationMode{AlsRotationModeTags::ViewDirection};
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State|Als Character", Transient)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State|Als Character", Transient, DisplayName = "姿态")
 	FGameplayTag Stance{AlsStanceTags::Standing};
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State|Als Character", Transient)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State|Als Character", Transient, DisplayName = "步态")
 	FGameplayTag Gait{AlsGaitTags::Walking};
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State|Als Character", Transient)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State|Als Character", Transient, DisplayName = "移动动作")
 	FGameplayTag LocomotionAction;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State|Als Character", Transient)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State|Als Character", Transient, DisplayName = "移动基状态")
 	FAlsMovementBaseState MovementBase;
 
-	// Replicated raw view rotation. Depending on the context, this rotation can be in world space, or in movement
-	// base space. In most cases, it is better to use FAlsViewState::Rotation to take advantage of network smoothing.
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State|Als Character", Transient,
-		ReplicatedUsing = "OnReplicated_ReplicatedViewRotation")
+		ReplicatedUsing = "OnReplicated_ReplicatedViewRotation", DisplayName = "网络同步视角旋转")
 	FRotator ReplicatedViewRotation{ForceInit};
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State|Als Character", Transient)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State|Als Character", Transient, DisplayName = "视角状态")
 	FAlsViewState ViewState;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State|Als Character", Transient, Replicated)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State|Als Character", Transient, Replicated,
+		DisplayName = "输入方向")
 	FVector_NetQuantizeNormal InputDirection{ForceInit};
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State|Als Character",
-		Transient, Replicated, Meta = (ClampMin = -180, ClampMax = 180, ForceUnits = "deg"))
+		Transient, Replicated, Meta = (ClampMin = -180, ClampMax = 180, ForceUnits = "deg"), DisplayName = "期望速度偏航角")
 	float DesiredVelocityYawAngle{0.0f};
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State|Als Character", Transient)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State|Als Character", Transient, DisplayName = "是否有期望速度")
 	uint8 bHasDesiredVelocity : 1 {false};
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State|Als Character", Transient)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State|Als Character", Transient, DisplayName = "角色移动状态")
 	FAlsLocomotionState LocomotionState;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State|Als Character", Transient)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State|Als Character", Transient, DisplayName = "攀爬状态")
 	FAlsMantlingState MantlingState;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State|Als Character", Transient, Replicated)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State|Als Character", Transient, Replicated,
+		DisplayName = "布娃娃目标位置")
 	FVector_NetQuantize RagdollTargetLocation{ForceInit};
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State|Als Character", Transient)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State|Als Character", Transient, DisplayName = "布娃娃状态")
 	FAlsRagdollingState RagdollingState;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State|Als Character", Transient)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State|Als Character", Transient, DisplayName = "翻滚状态")
 	FAlsRollingState RollingState;
+
 
 	FTimerHandle BrakingFrictionFactorResetTimer;
 
@@ -454,7 +460,8 @@ protected:
 
 	void SetRotationSmooth(float TargetYawAngle, float DeltaTime, float InterpolationSpeed);
 
-	void SetRotationExtraSmooth(float TargetYawAngle, float DeltaTime, float InterpolationSpeed, float TargetYawAngleRotationSpeed);
+	void SetRotationExtraSmooth(float TargetYawAngle, float DeltaTime, float InterpolationSpeed,
+	                            float TargetYawAngleRotationSpeed);
 
 	void SetRotationInstant(float TargetYawAngle, ETeleportType Teleport = ETeleportType::None);
 
@@ -592,21 +599,26 @@ private:
 	// Debug
 
 public:
-	virtual void DisplayDebug(UCanvas* Canvas, const FDebugDisplayInfo& DisplayInfo, float& Unused, float& VerticalLocation) override;
+	virtual void DisplayDebug(UCanvas* Canvas, const FDebugDisplayInfo& DisplayInfo, float& Unused,
+	                          float& VerticalLocation) override;
 
 private:
 	static void DisplayDebugHeader(const UCanvas* Canvas, const FText& HeaderText, const FLinearColor& HeaderColor,
 	                               float Scale, float HorizontalLocation, float& VerticalLocation);
 
-	void DisplayDebugCurves(const UCanvas* Canvas, float Scale, float HorizontalLocation, float& VerticalLocation) const;
+	void DisplayDebugCurves(const UCanvas* Canvas, float Scale, float HorizontalLocation,
+	                        float& VerticalLocation) const;
 
 	void DisplayDebugState(const UCanvas* Canvas, float Scale, float HorizontalLocation, float& VerticalLocation) const;
 
-	void DisplayDebugShapes(const UCanvas* Canvas, float Scale, float HorizontalLocation, float& VerticalLocation) const;
+	void DisplayDebugShapes(const UCanvas* Canvas, float Scale, float HorizontalLocation,
+	                        float& VerticalLocation) const;
 
-	void DisplayDebugTraces(const UCanvas* Canvas, float Scale, float HorizontalLocation, float& VerticalLocation) const;
+	void DisplayDebugTraces(const UCanvas* Canvas, float Scale, float HorizontalLocation,
+	                        float& VerticalLocation) const;
 
-	void DisplayDebugMantling(const UCanvas* Canvas, float Scale, float HorizontalLocation, float& VerticalLocation) const;
+	void DisplayDebugMantling(const UCanvas* Canvas, float Scale, float HorizontalLocation,
+	                          float& VerticalLocation) const;
 };
 
 inline const FGameplayTag& AAlsCharacter::GetViewMode() const
