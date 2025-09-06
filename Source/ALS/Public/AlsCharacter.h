@@ -53,8 +53,7 @@ protected:
 		DisplayName = "视角模式")
 	FGameplayTag ViewMode{AlsViewModeTags::ThirdPerson};
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Settings|Als Character|Desired State",
-		ReplicatedUsing = "OnReplicated_OverlayMode", DisplayName = "覆盖模式")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Settings|Als Character|Desired State", DisplayName = "覆盖模式")
 	FGameplayTag OverlayMode{AlsOverlayModeTags::Default};
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State|Als Character", Transient,
@@ -329,14 +328,11 @@ public:
 	void SetOverlayMode(const FGameplayTag& NewOverlayMode);
 
 private:
-	void SetOverlayMode(const FGameplayTag& NewOverlayMode, bool bSendRpc);
-
-	UFUNCTION(Client, Reliable)
-	void ClientSetOverlayMode(const FGameplayTag& NewOverlayMode);
-
+	
 	UFUNCTION(Server, Reliable)
 	void ServerSetOverlayMode(const FGameplayTag& NewOverlayMode);
-
+	UFUNCTION(NetMulticast, Reliable)
+	void MulticastSetOverlayMode(const FGameplayTag& NewOverlayMode);
 	UFUNCTION()
 	void OnReplicated_OverlayMode(const FGameplayTag& PreviousOverlayMode);
 

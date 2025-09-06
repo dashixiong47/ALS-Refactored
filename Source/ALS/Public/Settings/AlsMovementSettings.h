@@ -13,35 +13,47 @@ struct ALS_API FAlsMovementGaitSettings
 	GENERATED_BODY()
 
 public:
-	// Currently, the direction-dependent movement speed can cause some jitter in multiplayer, so enable it at your own risk.
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "ALS")
+	// 当前，基于方向的移动速度在多人游戏中可能会引起抖动，请谨慎启用。
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "ALS", DisplayName="允许基于方向的移动速度")
 	uint8 bAllowDirectionDependentMovementSpeed : 1 {false};
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ALS", Meta = (ClampMin = 0, ForceUnits = "cm/s"))
+	// 向前行走速度
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ALS",
+		DisplayName="行走前进速度", Meta = (ClampMin = 0, ForceUnits = "cm/s"))
 	float WalkForwardSpeed{175.0f};
 
+	// 向后行走速度（仅在允许方向依赖时启用）
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ALS",
+		DisplayName="行走后退速度",
 		Meta = (ClampMin = 0, EditCondition = "bAllowDirectionDependentMovementSpeed", ForceUnits = "cm/s"))
 	float WalkBackwardSpeed{175.0f};
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ALS", Meta = (ClampMin = 0, ForceUnits = "cm/s"))
+	// 向前奔跑速度
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ALS",
+		DisplayName="奔跑前进速度", Meta = (ClampMin = 0, ForceUnits = "cm/s"))
 	float RunForwardSpeed{375.0f};
 
+	// 向后奔跑速度（仅在允许方向依赖时启用）
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ALS",
+		DisplayName="奔跑后退速度",
 		Meta = (ClampMin = 0, EditCondition = "bAllowDirectionDependentMovementSpeed", ForceUnits = "cm/s"))
 	float RunBackwardSpeed{375.0f};
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ALS", Meta = (ClampMin = 0, ForceUnits = "cm/s"))
+	// 冲刺速度
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ALS",
+		DisplayName="冲刺速度", Meta = (ClampMin = 0, ForceUnits = "cm/s"))
 	float SprintSpeed{650.0f};
 
-	// Gait amount to acceleration, deceleration, and ground friction curve.
-	// Gait amount ranges from 0 to 3, where 0 is stopped, 1 is walking, 2 is running, and 3 is sprinting.
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ALS")
+	// 步态值到加速度、减速度和地面摩擦曲线。
+	// 步态值范围：0 = 停止，1 = 行走，2 = 奔跑，3 = 冲刺。
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ALS",
+		DisplayName="加减速与摩擦曲线")
 	TObjectPtr<UCurveVector> AccelerationAndDecelerationAndGroundFrictionCurve;
 
-	// Gait amount to rotation interpolation speed curve.
-	// Gait amount ranges from 0 to 3, where 0 is stopped, 1 is walking, 2 is running, and 3 is sprinting.
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ALS")
+	// 步态值到旋转插值速度曲线。
+	// 步态值范围：0 = 停止，1 = 行走，2 = 奔跑，3 = 冲刺。
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ALS",
+		DisplayName="旋转插值速度曲线")
 	TObjectPtr<UCurveFloat> RotationInterpolationSpeedCurve;
 
 public:
@@ -49,6 +61,7 @@ public:
 
 	float GetMaxRunSpeed() const;
 };
+
 
 USTRUCT(BlueprintType)
 struct ALS_API FAlsMovementStanceSettings

@@ -87,7 +87,7 @@ void AAlsCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLif
 	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, bDesiredAiming, Parameters)
 	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, DesiredRotationMode, Parameters)
 	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, ViewMode, Parameters)
-	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, OverlayMode, Parameters)
+	// DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, OverlayMode, Parameters)
 
 	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, ReplicatedViewRotation, Parameters)
 	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, InputDirection, Parameters)
@@ -1042,45 +1042,17 @@ bool AAlsCharacter::CanSprint() const
 
 void AAlsCharacter::SetOverlayMode(const FGameplayTag& NewOverlayMode)
 {
-	SetOverlayMode(NewOverlayMode, true);
+	ServerSetOverlayMode(NewOverlayMode);
 }
-
-void AAlsCharacter::SetOverlayMode(const FGameplayTag& NewOverlayMode, const bool bSendRpc)
-{
-	if (OverlayMode == NewOverlayMode || GetLocalRole() <= ROLE_SimulatedProxy)
-	{
-		return;
-	}
-
-	const auto PreviousOverlayMode{OverlayMode};
-
-	OverlayMode = NewOverlayMode;
-
-	MARK_PROPERTY_DIRTY_FROM_NAME(ThisClass, OverlayMode, this)
-
-	OnOverlayModeChanged(PreviousOverlayMode);
-
-	if (bSendRpc)
-	{
-		if (GetLocalRole() >= ROLE_Authority)
-		{
-			ClientSetOverlayMode(OverlayMode);
-		}
-		else
-		{
-			ServerSetOverlayMode(OverlayMode);
-		}
-	}
-}
-
-void AAlsCharacter::ClientSetOverlayMode_Implementation(const FGameplayTag& NewOverlayMode)
-{
-	SetOverlayMode(NewOverlayMode, false);
-}
-
 void AAlsCharacter::ServerSetOverlayMode_Implementation(const FGameplayTag& NewOverlayMode)
 {
-	SetOverlayMode(NewOverlayMode, false);
+	MulticastSetOverlayMode(NewOverlayMode);
+}
+
+void AAlsCharacter::MulticastSetOverlayMode_Implementation(const FGameplayTag& NewOverlayMode)
+{
+	OverlayMode = NewOverlayMode;
+	OnOverlayModeChanged(OverlayMode);
 }
 
 void AAlsCharacter::OnReplicated_OverlayMode(const FGameplayTag& PreviousOverlayMode)

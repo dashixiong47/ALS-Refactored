@@ -10,16 +10,16 @@ class ALSEDITOR_API UAlsAnimationModifier_CreateLayeringCurves : public UAnimati
 	GENERATED_BODY()
 
 protected:
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Settings")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Settings", DisplayName="覆盖已有曲线")
 	uint8 bOverrideExistingCurves : 1 {false};
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Settings")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Settings", DisplayName="每帧添加关键点")
 	uint8 bAddKeyOnEachFrame : 1 {false};
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Settings")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Settings", DisplayName="曲线值")
 	float CurveValue{0.0f};
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Settings")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Settings", DisplayName="曲线名称")
 	TArray<FName> CurveNames
 	{
 		UAlsConstants::LayerHeadCurveName(),
@@ -46,13 +46,13 @@ protected:
 		UAlsConstants::HipsDirectionLockCurveName(),
 	};
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Settings")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Settings", DisplayName="添加插槽曲线")
 	uint8 bAddSlotCurves : 1 {false};
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Settings")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Settings", DisplayName="插槽曲线值")
 	float SlotCurveValue{1.0f};
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Settings")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Settings", DisplayName="插槽曲线名称")
 	TArray<FName> SlotCurveNames
 	{
 		UAlsConstants::LayerHeadSlotCurveName(),
