@@ -1,13 +1,11 @@
 #include "AlsCameraComponent.h"
 
 #include "AlsCameraSettings.h"
-#include "AlsCharacter.h"
 #include "DrawDebugHelpers.h"
 #include "Animation/AnimInstance.h"
 #include "Engine/OverlapResult.h"
 #include "GameFramework/Character.h"
 #include "GameFramework/WorldSettings.h"
-#include "Kismet/KismetMathLibrary.h"
 #include "Utility/AlsCameraConstants.h"
 #include "Utility/AlsDebugUtility.h"
 #include "Utility/AlsMacros.h"
@@ -23,6 +21,15 @@ UAlsCameraComponent::UAlsCameraComponent()
 
 	bTickInEditor = false;
 	bHiddenInGame = true;
+}
+
+void UAlsCameraComponent::PostLoad()
+{
+	Super::PostLoad();
+
+	// This is required for the camera to work properly, as its mesh is never rendered.
+	// We change the tick option here to override the value that comes from the config file.
+	VisibilityBasedAnimTickOption = EVisibilityBasedAnimTickOption::AlwaysTickPoseAndRefreshBones;
 }
 
 void UAlsCameraComponent::OnRegister()
@@ -147,24 +154,20 @@ void UAlsCameraComponent::GetViewInfo(FMinimalViewInfo& ViewInfo) const
 
 void UAlsCameraComponent::TickCamera(const float DeltaTime, bool bAllowLag)
 {
-	// 性能统计相关宏（用于性能分析）
 	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("UAlsCameraComponent::TickCamera"), STAT_UAlsCameraComponent_TickCamera, STATGROUP_Als)
-	TRACE_CPUPROFILER_EVENT_SCOPE(UAlsCameraComponent::TickCamera);
+	TRACE_CPUPROFILER_EVENT_SCOPE_STR(__FUNCTION__)
 
-	// 如果动画实例、配置、角色无效，直接返回
 	if (!IsValid(GetAnimInstance()) || !IsValid(Settings) || !IsValid(Character))
 	{
 		return;
 	}
 
-	// 检查是否在并行动画评估中调用（防止访问曲线卡主线程）
-	ALS_ENSURE_MESSAGE(!IsRunningParallelEvaluation(),
-	                   TEXT("%hs should not be called during parallel animation evaluation, because accessing animation curves")
-	                   TEXT(" causes the game thread to wait for the parallel task to complete, resulting in performance degradation."),
-	                   __FUNCTION__);
+	ALS_ENSURE_MESSAGE(!IsRunningParallelEvaluation(), // NOLINT(clang-diagnostic-unused-value)
+	                   TEXT("UAlsCameraComponent::TickCamera() should not be called during parallel animation")
+	                   TEXT(" evaluation, because accessing animation curves causes the game thread to wait")
+	                   TEXT(" for the parallel task to complete, resulting in performance degradation"));
 
 #if ENABLE_DRAW_DEBUG
-	// 是否显示调试摄像机形状
 	const auto bDisplayDebugCameraShapes{
 		UAlsDebugUtility::ShouldDisplayDebugForActor(GetOwner(), UAlsCameraConstants::CameraShapesDebugDisplayName())
 	};
@@ -172,7 +175,7 @@ void UAlsCameraComponent::TickCamera(const float DeltaTime, bool bAllowLag)
 	const auto bDisplayDebugCameraShapes{false};
 #endif
 
-	// 刷新 Movement Base（角色当前所站立的平台）
+	// Refresh movement base.
 
 	const auto& BasedMovement{Character->GetBasedMovement()};
 	const auto bMovementBaseHasRelativeRotation{BasedMovement.HasRelativeRotation()};
@@ -180,14 +183,12 @@ void UAlsCameraComponent::TickCamera(const float DeltaTime, bool bAllowLag)
 	auto MovementBaseLocation{FVector::ZeroVector};
 	auto MovementBaseRotation{FQuat::Identity};
 
-	// 如果基底有旋转，获取基底的世界空间位置和旋转
 	if (bMovementBaseHasRelativeRotation)
 	{
 		MovementBaseUtility::GetMovementBaseTransform(BasedMovement.MovementBase, BasedMovement.BoneName,
 		                                              MovementBaseLocation, MovementBaseRotation);
 	}
 
-	// 如果 MovementBase 发生变化，则更新相对位置/旋转
 	if (BasedMovement.MovementBase != MovementBasePrimitive || BasedMovement.BoneName != MovementBaseBoneName)
 	{
 		MovementBasePrimitive = BasedMovement.MovementBase;
@@ -197,9 +198,7 @@ void UAlsCameraComponent::TickCamera(const float DeltaTime, bool bAllowLag)
 		{
 			const auto MovementBaseRotationInverse{MovementBaseRotation.Inverse()};
 
-			// 记录相对基底的滞后位置
 			PivotMovementBaseRelativeLagLocation = MovementBaseRotationInverse.RotateVector(PivotLagLocation - MovementBaseLocation);
-			// 记录相对基底的摄像机旋转
 			CameraMovementBaseRelativeRotation = MovementBaseRotationInverse * CameraRotation.Quaternion();
 		}
 		else
@@ -209,23 +208,20 @@ void UAlsCameraComponent::TickCamera(const float DeltaTime, bool bAllowLag)
 		}
 	}
 
-	// 角色当前目标视角（控制器旋转）
 	const auto CameraTargetRotation{Character->GetViewRotation()};
 
-	// 保存上帧的 Pivot 位置
 	const auto PreviousPivotTargetLocation{PivotTargetLocation};
 
-	// 计算新的 Pivot 目标位置
 	PivotTargetLocation = GetThirdPersonPivotLocation();
 
-	// 动画曲线：是否启用第一人称（0~1）
 	const auto FirstPersonOverride{
 		UAlsMath::Clamp01(GetAnimInstance()->GetCurveValue(UAlsCameraConstants::FirstPersonOverrideCurveName()))
 	};
 
 	if (FAnimWeight::IsFullWeight(FirstPersonOverride))
 	{
-		// 如果完全是第一人称模式，跳过后续所有第三人称的计算
+		// Skip other calculations if the character is fully in first-person mode.
+
 		PivotLagLocation = PivotTargetLocation;
 		PivotLocation = PivotTargetLocation;
 
@@ -236,16 +232,19 @@ void UAlsCameraComponent::TickCamera(const float DeltaTime, bool bAllowLag)
 		return;
 	}
 
-	// 如果角色瞬移（位移过大），强制禁用镜头延迟（Lag）
+	// Force disable camera lag if the character was teleported.
+
 	bAllowLag &= Settings->TeleportDistanceThreshold <= 0.0f ||
 		FVector::DistSquared(PreviousPivotTargetLocation, PivotTargetLocation) <= FMath::Square(Settings->TeleportDistanceThreshold);
 
-	// 计算摄像机旋转
+	// Calculate camera rotation.
+
 	if (bMovementBaseHasRelativeRotation)
 	{
-		// 如果站在可旋转的平台上，需要基于平台旋转计算
 		CameraRotation = (MovementBaseRotation * CameraMovementBaseRelativeRotation).Rotator();
+
 		CameraRotation = CalculateCameraRotation(CameraTargetRotation, DeltaTime, bAllowLag);
+
 		CameraMovementBaseRelativeRotation = MovementBaseRotation.Inverse() * CameraRotation.Quaternion();
 	}
 	else
@@ -256,18 +255,20 @@ void UAlsCameraComponent::TickCamera(const float DeltaTime, bool bAllowLag)
 	const FQuat CameraYawRotation{FVector::ZAxisVector, FMath::DegreesToRadians(CameraRotation.Yaw)};
 
 #if ENABLE_DRAW_DEBUG
-	// Debug 绘制：Pivot 目标位置
 	if (bDisplayDebugCameraShapes)
 	{
 		UAlsDebugUtility::DrawSphereAlternative(GetWorld(), PivotTargetLocation, CameraYawRotation.Rotator(), 16.0f, FLinearColor::Green);
 	}
 #endif
 
-	// 计算 Pivot 滞后位置
+	// Calculate pivot lag location. Get the pivot target location and interpolate using axis-independent lag for maximum control.
+
 	if (bMovementBaseHasRelativeRotation)
 	{
 		PivotLagLocation = MovementBaseLocation + MovementBaseRotation.RotateVector(PivotMovementBaseRelativeLagLocation);
+
 		PivotLagLocation = CalculatePivotLagLocation(CameraYawRotation, DeltaTime, bAllowLag);
+
 		PivotMovementBaseRelativeLagLocation = MovementBaseRotation.UnrotateVector(PivotLagLocation - MovementBaseLocation);
 	}
 	else
@@ -276,7 +277,6 @@ void UAlsCameraComponent::TickCamera(const float DeltaTime, bool bAllowLag)
 	}
 
 #if ENABLE_DRAW_DEBUG
-	// Debug 绘制：Pivot 滞后位置
 	if (bDisplayDebugCameraShapes)
 	{
 		DrawDebugLine(GetWorld(), PivotLagLocation, PivotTargetLocation,
@@ -287,12 +287,13 @@ void UAlsCameraComponent::TickCamera(const float DeltaTime, bool bAllowLag)
 	}
 #endif
 
-	// 计算最终 Pivot 位置（滞后位置 + 偏移）
+	// Calculate pivot location.
+
 	const auto PivotOffset{CalculatePivotOffset()};
+
 	PivotLocation = PivotLagLocation + PivotOffset;
 
 #if ENABLE_DRAW_DEBUG
-	// Debug 绘制：Pivot 最终位置
 	if (bDisplayDebugCameraShapes)
 	{
 		DrawDebugLine(GetWorld(), PivotLocation, PivotLagLocation,
@@ -303,13 +304,14 @@ void UAlsCameraComponent::TickCamera(const float DeltaTime, bool bAllowLag)
 	}
 #endif
 
-	// 计算目标摄像机位置（Pivot + 摄像机偏移）
+	// Calculate target camera location.
+
 	const auto CameraTargetLocation{PivotLocation + CalculateCameraOffset()};
 
-	// 碰撞检测修正摄像机位置（避免穿模）
+	// Trace for an object between the camera and character to apply a corrective offset.
+
 	const auto CameraFinalLocation{CalculateCameraTrace(CameraTargetLocation, PivotOffset, DeltaTime, bAllowLag, TraceDistanceRatio)};
 
-	// 计算最终摄像机位置 & FOV（考虑第一人称混合）
 	if (!FAnimWeight::IsRelevant(FirstPersonOverride))
 	{
 		CameraLocation = CameraFinalLocation;
@@ -321,81 +323,26 @@ void UAlsCameraComponent::TickCamera(const float DeltaTime, bool bAllowLag)
 		CameraFieldOfView = FMath::Lerp(Settings->ThirdPerson.FieldOfView, Settings->FirstPerson.FieldOfView, FirstPersonOverride);
 	}
 
-	// 如果手动指定 FOV，覆盖
 	if (bOverrideFieldOfView)
 	{
 		CameraFieldOfView = FieldOfViewOverride;
 	}
 
-	// 限制 FOV 范围并应用动态偏移
 	CameraFieldOfView = FMath::Clamp(CameraFieldOfView + CalculateFovOffset(), 5.0f, 175.0f);
 }
-
 
 FRotator UAlsCameraComponent::CalculateCameraRotation(const FRotator& CameraTargetRotation,
                                                       const float DeltaTime, const bool bAllowLag) const
 {
-	// 如果不允许相机滞后（Lag），直接返回目标旋转
 	if (!bAllowLag)
 	{
 		return CameraTargetRotation;
 	}
 
-	// 从动画曲线中获取相机旋转滞后系数（可动态控制）
 	const auto RotationLag{GetAnimInstance()->GetCurveValue(UAlsCameraConstants::RotationLagCurveName())};
 
-	// 如果禁用子步滞后 或 DeltaTime 太小 或 曲线系数为 0
-	// 就直接用指数衰减方式计算相机旋转
-	if (!Settings->bEnableCameraLagSubstepping ||
-	    DeltaTime <= Settings->CameraLagSubstepping.LagSubstepDeltaTime ||
-	    RotationLag <= 0.0f)
-	{
-		return UAlsRotation::ExponentialDecayRotation(CameraRotation, CameraTargetRotation, DeltaTime, RotationLag);
-	}
-
-	// 记录当前相机旋转
-	const auto CameraInitialRotation{CameraRotation};
-
-	// 计算每秒旋转速度（目标 - 当前）/ DeltaTime
-	const auto SubstepRotationSpeed{(CameraTargetRotation - CameraInitialRotation).GetNormalized() * (1.0f / DeltaTime)};
-
-	// 用来累积每个子步计算结果
-	auto NewCameraRotation{CameraRotation};
-	auto PreviousSubstepTime{0.0f};
-
-	// 子步循环，逐步逼近目标旋转
-	for (auto SubstepNumber{1};; SubstepNumber++)
-	{
-		// 当前子步时间（子步编号 × 每子步时间长度）
-		const auto SubstepTime{SubstepNumber * Settings->CameraLagSubstepping.LagSubstepDeltaTime};
-
-		// 如果子步时间小于本帧总时间（DeltaTime）
-		if (SubstepTime < DeltaTime - UE_SMALL_NUMBER)
-		{
-			// 逐帧插值到当前子步应当到达的位置
-			NewCameraRotation = FMath::RInterpTo(
-				NewCameraRotation,                                                  // 当前旋转
-				CameraInitialRotation + SubstepRotationSpeed * SubstepTime,         // 目标：初始旋转 + 旋转速度 * 时间
-				SubstepTime - PreviousSubstepTime,                                  // 当前子步时间增量
-				RotationLag                                                         // 滞后系数
-			);
-
-			// 更新上一次子步的时间
-			PreviousSubstepTime = SubstepTime;
-		}
-		else
-		{
-			// 最后一次插值，插到真正的目标旋转
-			return FMath::RInterpTo(
-				NewCameraRotation,               // 当前旋转
-				CameraTargetRotation,            // 最终目标旋转
-				DeltaTime - PreviousSubstepTime, // 最后剩余的子步时间
-				RotationLag                      // 滞后系数
-			);
-		}
-	}
+	return UAlsRotation::DamperExactRotation(CameraRotation, CameraTargetRotation, DeltaTime, RotationLag);
 }
-
 
 FVector UAlsCameraComponent::CalculatePivotLagLocation(const FQuat& CameraYawRotation, const float DeltaTime, const bool bAllowLag) const
 {
@@ -411,53 +358,11 @@ FVector UAlsCameraComponent::CalculatePivotLagLocation(const FQuat& CameraYawRot
 	const auto LocationLagY{GetAnimInstance()->GetCurveValue(UAlsCameraConstants::LocationLagYCurveName())};
 	const auto LocationLagZ{GetAnimInstance()->GetCurveValue(UAlsCameraConstants::LocationLagZCurveName())};
 
-	if (!Settings->bEnableCameraLagSubstepping ||
-	    DeltaTime <= Settings->CameraLagSubstepping.LagSubstepDeltaTime ||
-	    (LocationLagX <= 0.0f && LocationLagY <= 0.0f && LocationLagZ <= 0.0f))
-	{
-		return CameraYawRotation.RotateVector({
-			UAlsMath::ExponentialDecay(RelativePivotInitialLagLocation.X, RelativePivotTargetLocation.X, DeltaTime, LocationLagX),
-			UAlsMath::ExponentialDecay(RelativePivotInitialLagLocation.Y, RelativePivotTargetLocation.Y, DeltaTime, LocationLagY),
-			UAlsMath::ExponentialDecay(RelativePivotInitialLagLocation.Z, RelativePivotTargetLocation.Z, DeltaTime, LocationLagZ)
-		});
-	}
-
-	const auto SubstepMovementSpeed{(RelativePivotTargetLocation - RelativePivotInitialLagLocation) / DeltaTime};
-
-	auto RelativePivotLagLocation{RelativePivotInitialLagLocation};
-	auto PreviousSubstepTime{0.0f};
-
-	for (auto SubstepNumber{1};; SubstepNumber++)
-	{
-		const auto SubstepTime{SubstepNumber * Settings->CameraLagSubstepping.LagSubstepDeltaTime};
-		if (SubstepTime < DeltaTime - UE_SMALL_NUMBER)
-		{
-			const auto SubstepRelativePivotTargetLocation{RelativePivotInitialLagLocation + SubstepMovementSpeed * SubstepTime};
-			const auto SubstepDeltaTime{SubstepTime - PreviousSubstepTime};
-
-			RelativePivotLagLocation.X = FMath::FInterpTo(RelativePivotLagLocation.X, SubstepRelativePivotTargetLocation.X,
-			                                              SubstepDeltaTime, LocationLagX);
-			RelativePivotLagLocation.Y = FMath::FInterpTo(RelativePivotLagLocation.Y, SubstepRelativePivotTargetLocation.Y,
-			                                              SubstepDeltaTime, LocationLagY);
-			RelativePivotLagLocation.Z = FMath::FInterpTo(RelativePivotLagLocation.Z, SubstepRelativePivotTargetLocation.Z,
-			                                              SubstepDeltaTime, LocationLagZ);
-
-			PreviousSubstepTime = SubstepTime;
-		}
-		else
-		{
-			const auto RemainingDeltaTime{DeltaTime - PreviousSubstepTime};
-
-			RelativePivotLagLocation.X = FMath::FInterpTo(RelativePivotLagLocation.X, RelativePivotTargetLocation.X,
-			                                              RemainingDeltaTime, LocationLagX);
-			RelativePivotLagLocation.Y = FMath::FInterpTo(RelativePivotLagLocation.Y, RelativePivotTargetLocation.Y,
-			                                              RemainingDeltaTime, LocationLagY);
-			RelativePivotLagLocation.Z = FMath::FInterpTo(RelativePivotLagLocation.Z, RelativePivotTargetLocation.Z,
-			                                              RemainingDeltaTime, LocationLagZ);
-
-			return CameraYawRotation.RotateVector(RelativePivotLagLocation);
-		}
-	}
+	return CameraYawRotation.RotateVector({
+		UAlsMath::DamperExact(RelativePivotInitialLagLocation.X, RelativePivotTargetLocation.X, DeltaTime, LocationLagX),
+		UAlsMath::DamperExact(RelativePivotInitialLagLocation.Y, RelativePivotTargetLocation.Y, DeltaTime, LocationLagY),
+		UAlsMath::DamperExact(RelativePivotInitialLagLocation.Z, RelativePivotTargetLocation.Z, DeltaTime, LocationLagZ)
+	});
 }
 
 FVector UAlsCameraComponent::CalculatePivotOffset() const
@@ -567,8 +472,8 @@ FVector UAlsCameraComponent::CalculateCameraTrace(const FVector& CameraTargetLoc
 
 	NewTraceDistanceRatio = TargetTraceDistanceRatio <= TraceDistanceRatio
 		                        ? TargetTraceDistanceRatio
-		                        : UAlsMath::ExponentialDecay(TraceDistanceRatio, TargetTraceDistanceRatio, DeltaTime,
-		                                                     Settings->ThirdPerson.TraceDistanceSmoothing.InterpolationSpeed);
+		                        : UAlsMath::DamperExact(TraceDistanceRatio, TargetTraceDistanceRatio, DeltaTime,
+		                                                Settings->ThirdPerson.TraceDistanceSmoothing.InterpolationHalfLife);
 
 	return TraceStart + TraceVector * TraceDistanceRatio;
 }

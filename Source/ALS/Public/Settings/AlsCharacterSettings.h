@@ -13,8 +13,11 @@ class ALS_API UAlsCharacterSettings : public UDataAsset
 	GENERATED_BODY()
 
 public:
-	// 移动速度阈值（cm/s）
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Settings", Meta = (ClampMin = 0, ForceUnits = "cm/s"), DisplayName="移动速度阈值")
+	// Actor will be considered as teleported if he has moved farther than this distance in 1 frame.
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Settings", Meta = (ClampMin = 0, ForceUnits = "cm"))
+	float TeleportDistanceThreshold{50.0f};
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Settings", Meta = (ClampMin = 0, ForceUnits = "cm/s"))
 	float MovingSpeedThreshold{50.0f};
 
 	// 空中旋转模式

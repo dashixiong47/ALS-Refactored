@@ -2,10 +2,6 @@
 
 #include "Misc/AssertionMacros.h"
 
-#define ALS_STRINGIFY_IMPLEMENTATION(Value) #Value
-
-#define ALS_STRINGIFY(Value) ALS_STRINGIFY_IMPLEMENTATION(Value)
-
 #define ALS_GET_TYPE_STRING(Type) \
 	((void) sizeof UEAsserts_Private::GetMemberNameCheckedJunk(static_cast<Type*>(nullptr)), TEXTVIEW(#Type))
 
@@ -16,19 +12,51 @@
 
 namespace AlsEnsure
 {
-	ALS_API bool UE_DEBUG_SECTION VARARGS Execute(std::atomic<bool>& bExecuted, bool bEnsureAlways, const ANSICHAR* Expression,
-	                                              const TCHAR* StaticMessage, const TCHAR* Format, ...);
+	struct FAlsEnsureInfo
+	{
+		const ANSICHAR* Expression{nullptr};
+
+		const ANSICHAR* FilePath{nullptr};
+
+		int32 LineNumber{0};
+
+		uint8 bEnsureAlways : 1 {false};
+	};
+
+	ALS_API bool UE_COLD UE_DEBUG_SECTION VARARGS
+	Execute(std::atomic<bool>& bExecuted, const FAlsEnsureInfo& EnsureInfo);
+
+	ALS_API bool UE_COLD UE_DEBUG_SECTION VARARGS
+	ExecuteFormat(std::atomic<bool>& bExecuted, const FAlsEnsureInfo& EnsureInfo, const TCHAR* Format, ...);
 }
 
-#define ALS_ENSURE_IMPLEMENTATION(Capture, bEnsureAlways, Expression, Format, ...) \
-	(LIKELY(Expression) || [Capture]() UE_DEBUG_SECTION \
+#if UE_USE_LITE_ENSURES
+#define ALS_ENSURE_IMPLEMENTATION(bEnsureAlways, Expression) \
+	(LIKELY(Expression) || \
+	 (AlsEnsure::Execute(::bGEnsureHasExecuted<static_cast<uint64>(FileHashForEnsure(__FILE__)) << 32 | static_cast<uint64>(__LINE__)>, \
+	                    AlsEnsure::FAlsEnsureInfo{#Expression, __FILE__, __LINE__, bEnsureAlways}) && \
+	  BreakAndReturnFalse()))
+#else
+#define ALS_ENSURE_IMPLEMENTATION(bEnsureAlways, Expression) \
+	(LIKELY(Expression) || \
+	 (AlsEnsure::Execute(::bGEnsureHasExecuted<static_cast<uint64>(FileHashForEnsure(__FILE__)) << 32 | static_cast<uint64>(__LINE__)>, \
+	                    AlsEnsure::FAlsEnsureInfo{#Expression, __FILE__, __LINE__, bEnsureAlways}) && \
+	  [] \
+	  { \
+		  PLATFORM_BREAK(); \
+		  return false; \
+	  }()))
+#endif
+
+#define ALS_ENSURE_IMPLEMENTATION_FORMAT(Capture, bEnsureAlways, Expression, Format, ...) \
+	(LIKELY(Expression) || [Capture]() UE_COLD UE_DEBUG_SECTION \
 	{ \
-		static constexpr auto StaticMessage{TEXT("Ensure failed: " #Expression ", File: " __FILE__ ", Line: " ALS_STRINGIFY(__LINE__) ".")}; \
-		static std::atomic<bool> bExecuted{false}; \
-		\
+		static constexpr AlsEnsure::FAlsEnsureInfo EnsureInfo{#Expression, __builtin_FILE(), __builtin_LINE(), bEnsureAlways}; \
+ 		static std::atomic<bool> bExecuted{false}; \
+ 		\
 		UE_VALIDATE_FORMAT_STRING(Format, ##__VA_ARGS__); \
 		\
-		if (AlsEnsure::Execute(bExecuted, bEnsureAlways, #Expression, StaticMessage, Format, ##__VA_ARGS__)) \
+		if (AlsEnsure::ExecuteFormat(bExecuted, EnsureInfo, Format, ##__VA_ARGS__)) \
 		{ \
 			PLATFORM_BREAK(); \
 		} \
@@ -36,10 +64,10 @@ namespace AlsEnsure
 		return false; \
 	}())
 
-#define ALS_ENSURE(Expression) ALS_ENSURE_IMPLEMENTATION( , false, Expression, TEXT(""))
-#define ALS_ENSURE_MESSAGE(Expression, Format, ...) ALS_ENSURE_IMPLEMENTATION(&, false, Expression, Format, ##__VA_ARGS__)
-#define ALS_ENSURE_ALWAYS(Expression) ALS_ENSURE_IMPLEMENTATION( , true, Expression, TEXT(""))
-#define ALS_ENSURE_ALWAYS_MESSAGE(Expression, Format, ...) ALS_ENSURE_IMPLEMENTATION(&, true, Expression, Format, ##__VA_ARGS__)
+#define ALS_ENSURE(Expression) ALS_ENSURE_IMPLEMENTATION(false, Expression)
+#define ALS_ENSURE_MESSAGE(Expression, Format, ...) ALS_ENSURE_IMPLEMENTATION_FORMAT(&, false, Expression, Format, ##__VA_ARGS__)
+#define ALS_ENSURE_ALWAYS(Expression) ALS_ENSURE_IMPLEMENTATION(true, Expression)
+#define ALS_ENSURE_ALWAYS_MESSAGE(Expression, Format, ...) ALS_ENSURE_IMPLEMENTATION_FORMAT(&, true, Expression, Format, ##__VA_ARGS__)
 
 #else
 

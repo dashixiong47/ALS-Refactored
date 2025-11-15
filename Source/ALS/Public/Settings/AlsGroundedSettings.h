@@ -25,8 +25,7 @@ struct ALS_API FAlsGroundedSettings
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ALS", DisplayName="右向旋转偏航曲线")
 	TObjectPtr<UCurveFloat> RotationYawOffsetRightCurve;
 
-	// 速度混合插值速度
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ALS", Meta = (ClampMin = 0), DisplayName="速度混合插值速度")
-	float VelocityBlendInterpolationSpeed{12.0f};
-
+	// The lower the value, the faster the interpolation. A zero value results in instant interpolation.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ALS", Meta = (ClampMin = 0, ForceUnits = "s"))
+	float VelocityBlendInterpolationHalfLife{0.1f};
 };

@@ -19,8 +19,7 @@ struct ALS_API FAlsGeneralAnimationSettings
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ALS", Meta = (ClampMin = 0, ForceUnits = "cm/s"), DisplayName="移动平滑速度阈值")
 	float MovingSmoothSpeedThreshold{150.0f};
 
-	// 倾斜插值速度
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ALS", Meta = (ClampMin = 0), DisplayName="倾斜插值速度")
-	float LeanInterpolationSpeed{4.0f};
-
+	// The lower the value, the faster the interpolation. A zero value results in instant interpolation.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ALS", Meta = (ClampMin = 0, ForceUnits = "s"))
+	float LeanInterpolationHalfLife{0.2f};
 };
