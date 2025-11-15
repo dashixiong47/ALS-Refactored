@@ -8,41 +8,65 @@ void UAlsAnimationModifier_CreateLayeringCurves::OnApply_Implementation(UAnimSeq
 {
 	Super::OnApply_Implementation(Sequence);
 
-	CreateCurves(Sequence, CurveNames, CurveValue);
+	CreateCurves(Sequence, CurveNames);
 
 	if (bAddSlotCurves)
 	{
-		CreateCurves(Sequence, SlotCurveNames, SlotCurveValue);
+		CreateCurves(Sequence, SlotCurveNames);
 	}
 }
 
-void UAlsAnimationModifier_CreateLayeringCurves::CreateCurves(UAnimSequence* Sequence, const TArray<FName>& Names,
-                                                              const float Value) const
+void UAlsAnimationModifier_CreateLayeringCurves::CreateCurves(
+	UAnimSequence* Sequence,
+	const TMap<FName, float>& Curves
+) const
 {
-	for (const auto& CurveName : Names)
+	// 遍历Map，每个元素包含 {曲线名, 默认值}
+	for (const auto& Pair : Curves)
 	{
+		const FName& CurveName = Pair.Key;
+		const float Value = Pair.Value;
+
+		// 检查曲线是否已经存在
 		if (UAnimationBlueprintLibrary::DoesCurveExist(Sequence, CurveName, ERawCurveTrackTypes::RCT_Float))
 		{
+			// 如果不允许覆盖现有曲线，就跳过
 			if (!bOverrideExistingCurves)
 			{
 				continue;
 			}
 
+			// 否则移除旧曲线
 			UAnimationBlueprintLibrary::RemoveCurve(Sequence, CurveName);
 		}
 
+		// 添加新的空曲线
 		UAnimationBlueprintLibrary::AddCurve(Sequence, CurveName);
 
+		// 根据设置决定是否在每帧都加Key
 		if (bAddKeyOnEachFrame)
 		{
-			for (auto i{0}; i < Sequence->GetNumberOfSampledKeys(); i++)
+			for (int32 i = 0; i < Sequence->GetNumberOfSampledKeys(); i++)
 			{
-				UAnimationBlueprintLibrary::AddFloatCurveKey(Sequence, CurveName, Sequence->GetTimeAtFrame(i), Value);
+				UAnimationBlueprintLibrary::AddFloatCurveKey(
+					Sequence,
+					CurveName,
+					Sequence->GetTimeAtFrame(i),
+					Value
+				);
 			}
 		}
 		else
 		{
-			UAnimationBlueprintLibrary::AddFloatCurveKey(Sequence, CurveName, Sequence->GetTimeAtFrame(0), Value);
+			// 只在第一帧加一个Key
+			UAnimationBlueprintLibrary::AddFloatCurveKey(
+				Sequence,
+				CurveName,
+				Sequence->GetTimeAtFrame(0),
+				Value
+			);
 		}
 	}
 }
+
+

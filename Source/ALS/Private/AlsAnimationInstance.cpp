@@ -126,7 +126,8 @@ void UAlsAnimationInstance::NativeUpdateAnimation(const float DeltaTime)
 	Stance = Character->GetStance();
 	Gait = Character->GetGait();
 	OverlayMode = Character->GetOverlayMode();
-
+	bIsAiming=Character->GetIsAiming();
+	SpineRotationState=Character->GetSpineRotationState();
 	if (LocomotionAction != Character->GetLocomotionAction())
 	{
 		LocomotionAction = Character->GetLocomotionAction();
@@ -215,7 +216,10 @@ FAlsControlRigInput UAlsAnimationInstance::GetControlRigInput() const
 		.FootLeftRotation{FQuat{FeetState.Left.FinalRotation}},
 		.FootRightLocation{FVector{FeetState.Right.FinalLocation}},
 		.FootRightRotation{FQuat{FeetState.Right.FinalRotation}},
-		.SpineYawAngle = SpineState.YawAngle
+		.SpineYawAngle = SpineState.YawAngle,
+		.SpinePitchAngle = ViewState.PitchAngle,
+		.SpineRotationState = Character->GetSpineRotationState(),
+		.bEnableSpinePitchRotation=Character->IsLocallyControlled()
 	};
 }
 
@@ -344,19 +348,34 @@ void UAlsAnimationInstance::RefreshViewOnGameThread()
 
 void UAlsAnimationInstance::RefreshView(const float DeltaTime)
 {
+	// 如果当前没有有效的 LocomotionAction（即角色没有特殊的动作状态）
 	if (!LocomotionAction.IsValid())
 	{
-		ViewState.YawAngle = FMath::UnwindDegrees(UE_REAL_TO_FLOAT(ViewState.Rotation.Yaw - LocomotionState.Rotation.Yaw));
-		ViewState.PitchAngle = FMath::UnwindDegrees(UE_REAL_TO_FLOAT(ViewState.Rotation.Pitch - LocomotionState.Rotation.Pitch));
+		// 计算视角相对于角色旋转的偏移角度（偏航角）
+		ViewState.YawAngle = FMath::UnwindDegrees(
+			UE_REAL_TO_FLOAT(ViewState.Rotation.Yaw - LocomotionState.Rotation.Yaw));
 
+		// 计算视角相对于角色旋转的偏移角度（俯仰角）
+		ViewState.PitchAngle = FMath::UnwindDegrees(
+			UE_REAL_TO_FLOAT(ViewState.Rotation.Pitch - LocomotionState.Rotation.Pitch));
+
+		// 将俯仰角转换为一个范围在 [0,1] 内的量，用于后续动画过渡
+		// 0.5 表示水平朝向，中间值，向上看则减少，向下看则增加
 		ViewState.PitchAmount = 0.5f - ViewState.PitchAngle / 180.0f;
 	}
 
+	// 从曲线中获取视角阻挡系数（值范围 [0,1]）
+	// 1.0f 表示完全允许视角旋转，0 表示完全阻挡
 	const auto ViewAmount{1.0f - GetCurveValueClamped01(UAlsConstants::ViewBlockCurveName())};
+
+	// 从曲线中获取允许瞄准的系数（值范围 [0,1]）
 	const auto AimingAmount{GetCurveValueClamped01(UAlsConstants::AllowAimingCurveName())};
 
+	// LookAmount 控制角色的“看向”动画效果
+	// 当瞄准时 LookAmount 会减弱（因为角色正专注于瞄准方向）
 	ViewState.LookAmount = ViewAmount * (1.0f - AimingAmount);
 
+	// 刷新脊柱动画（上半身朝向），通过视角和瞄准混合控制
 	RefreshSpine(ViewAmount * AimingAmount, DeltaTime);
 }
 
@@ -367,30 +386,38 @@ bool UAlsAnimationInstance::IsSpineRotationAllowed()
 
 void UAlsAnimationInstance::RefreshSpine(const float SpineBlendAmount, const float DeltaTime)
 {
+	// 检查脊椎旋转的允许状态是否发生了变化
 	if (SpineState.bSpineRotationAllowed != IsSpineRotationAllowed())
 	{
+		// 状态发生变化后，翻转当前的允许状态
 		SpineState.bSpineRotationAllowed = !SpineState.bSpineRotationAllowed;
 
 		if (SpineState.bSpineRotationAllowed)
 		{
-			// Remap SpineAmount from the [SpineAmount, 1] range to [0, 1] so that lerp between new LastYawAngle
-			// and ViewState.YawAngle with an alpha equal to SpineAmount still results in CurrentYawAngle.
+			// 进入允许脊椎旋转的状态
+			// 需要将 SpineAmount 从 [当前SpineAmount, 1] 范围重映射到 [0, 1]，
+			// 这样在 SpineAmount 为插值alpha时，从 LastYawAngle 到 ViewState.YawAngle 的插值结果
+			// 能保持在当前的 CurrentYawAngle
 
 			if (FAnimWeight::IsFullWeight(SpineState.SpineAmount))
 			{
+				// 如果 SpineAmount 已经是 1（满权重），直接使用默认比例
 				SpineState.SpineAmountScale = 1.0f;
 				SpineState.SpineAmountBias = 0.0f;
 			}
 			else
 			{
+				// 否则计算比例和偏移，实现重映射
 				SpineState.SpineAmountScale = 1.0f / (1.0f - SpineState.SpineAmount);
 				SpineState.SpineAmountBias = -SpineState.SpineAmount * SpineState.SpineAmountScale;
 			}
 		}
 		else
 		{
-			// Remap SpineAmount from the [0, SpineAmount] range to [0, 1] so that lerp between 0
-			// and LastYawAngle with an alpha equal to SpineAmount still results in CurrentYawAngle.
+			// 进入不允许脊椎旋转的状态
+			// 需要将 SpineAmount 从 [0, 当前SpineAmount] 范围重映射到 [0, 1]，
+			// 这样在 SpineAmount 为插值alpha时，从 0 到 LastYawAngle 的插值结果
+			// 能保持在当前的 CurrentYawAngle
 
 			SpineState.SpineAmountScale = !FAnimWeight::IsRelevant(SpineState.SpineAmount)
 				                              ? 1.0f
@@ -399,74 +426,87 @@ void UAlsAnimationInstance::RefreshSpine(const float SpineBlendAmount, const flo
 			SpineState.SpineAmountBias = 0.0f;
 		}
 
+		// 保存当前的角度状态
 		SpineState.LastYawAngle = SpineState.CurrentYawAngle;
 		SpineState.LastActorYawAngle = UE_REAL_TO_FLOAT(LocomotionState.Rotation.Yaw);
 	}
-
+	
+	// 如果当前允许脊椎旋转
 	if (SpineState.bSpineRotationAllowed)
 	{
 		if (bPendingUpdate || FAnimWeight::IsFullWeight(SpineState.SpineAmount))
 		{
+			// 如果是待更新帧或者已经完全权重，直接把SpineAmount设为1，当前角度设为视角角度
 			SpineState.SpineAmount = 1.0f;
 			SpineState.CurrentYawAngle = ViewState.YawAngle;
 		}
 		else
 		{
+			// 使用指数衰减平滑地插值到1
 			static constexpr auto InterpolationSpeed{20.0f};
 
 			SpineState.SpineAmount = UAlsMath::ExponentialDecay(SpineState.SpineAmount, 1.0f, DeltaTime, InterpolationSpeed);
 
-			SpineState.CurrentYawAngle = UAlsRotation::LerpAngle(SpineState.LastYawAngle, ViewState.YawAngle,
-			                                                     SpineState.SpineAmount * SpineState.SpineAmountScale +
-			                                                     SpineState.SpineAmountBias);
+			// 使用插值计算当前Yaw角度
+			SpineState.CurrentYawAngle = UAlsRotation::LerpAngle(
+				SpineState.LastYawAngle, 
+				ViewState.YawAngle,
+				SpineState.SpineAmount * SpineState.SpineAmountScale + SpineState.SpineAmountBias);
 		}
 	}
 	else
 	{
+		// 当前不允许脊椎旋转
 		if (bPendingUpdate || !FAnimWeight::IsRelevant(SpineState.SpineAmount))
 		{
+			// 如果是待更新帧或SpineAmount已经接近0，直接归零
 			SpineState.SpineAmount = 0.0f;
 			SpineState.CurrentYawAngle = 0.0f;
 		}
 		else
 		{
+			// 使用指数衰减平滑地插值到0
 			static constexpr auto InterpolationSpeed{1.0f};
 			static constexpr auto ReferenceViewYawSpeed{40.0f};
 
-			// Increase the interpolation speed when the camera rotates quickly,
-			// otherwise the spine rotation may lag too much behind the actor rotation.
-
+			// 根据视角旋转速度提升插值速度，避免镜头快速旋转时脊椎跟不上
 			const auto InterpolationSpeedMultiplier{FMath::Max(1.0f, FMath::Abs(ViewState.YawSpeed) / ReferenceViewYawSpeed)};
 
-			SpineState.SpineAmount = UAlsMath::ExponentialDecay(SpineState.SpineAmount, 0.0f, DeltaTime,
-			                                                    InterpolationSpeed * InterpolationSpeedMultiplier);
+			SpineState.SpineAmount = UAlsMath::ExponentialDecay(
+				SpineState.SpineAmount, 
+				0.0f, 
+				DeltaTime,
+				InterpolationSpeed * InterpolationSpeedMultiplier);
 
 			if (MovementBase.bHasRelativeRotation)
 			{
-				// Offset the angle to keep it relative to the movement base.
+				// 如果角色站在会旋转的基座上，则需要把Yaw角度相对基座进行补偿
 				SpineState.LastActorYawAngle = FMath::UnwindDegrees(UE_REAL_TO_FLOAT(
 					SpineState.LastActorYawAngle + MovementBase.DeltaRotation.Yaw));
 			}
 
-			// Offset the spine rotation to keep it unchanged in world space to achieve a smoother spine rotation when aiming stops.
-
+			// 计算Yaw偏移，让脊椎旋转在停止瞄准时仍然在世界空间保持平滑
 			auto YawAngleOffset{FMath::UnwindDegrees(UE_REAL_TO_FLOAT(SpineState.LastActorYawAngle - LocomotionState.Rotation.Yaw))};
 
-			// Keep the offset within 30 degrees, otherwise the spine rotation may lag too much behind the actor rotation.
-
+			// 限制偏移在±30度，避免滞后过大
 			static constexpr auto MaxYawAngleOffset{30.0f};
 			YawAngleOffset = FMath::Clamp(YawAngleOffset, -MaxYawAngleOffset, MaxYawAngleOffset);
 
+			// 更新记录的角色Yaw角
 			SpineState.LastActorYawAngle = FMath::UnwindDegrees(UE_REAL_TO_FLOAT(YawAngleOffset + LocomotionState.Rotation.Yaw));
 
-			SpineState.CurrentYawAngle = UAlsRotation::LerpAngle(0.0f, SpineState.LastYawAngle + YawAngleOffset,
-			                                                     SpineState.SpineAmount * SpineState.SpineAmountScale +
-			                                                     SpineState.SpineAmountBias);
+			// 插值计算当前Yaw角度
+			SpineState.CurrentYawAngle = UAlsRotation::LerpAngle(
+				0.0f,
+				SpineState.LastYawAngle + YawAngleOffset,
+				SpineState.SpineAmount * SpineState.SpineAmountScale + SpineState.SpineAmountBias);
 		}
 	}
 
+	// 最终根据外部传入的 SpineBlendAmount 对结果进行混合
 	SpineState.YawAngle = UAlsRotation::LerpAngle(0.0f, SpineState.CurrentYawAngle, SpineBlendAmount);
 }
+
 
 void UAlsAnimationInstance::InitializeLook()
 {

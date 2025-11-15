@@ -6,6 +6,7 @@
 #include "State/AlsMovementBaseState.h"
 #include "State/AlsRagdollingState.h"
 #include "State/AlsRollingState.h"
+#include "State/AlsSpineRotationState.h"
 #include "State/AlsViewState.h"
 #include "Utility/AlsGameplayTags.h"
 #include "AlsCharacter.generated.h"
@@ -32,7 +33,8 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Settings|Als Character", DisplayName = "ALS角色移动设置")
 	TObjectPtr<UAlsMovementSettings> MovementSettings;
-
+	UPROPERTY( EditAnywhere, BlueprintReadOnly, Category = "Settings|Als Character",Replicated, DisplayName = "ALS瞄准")
+	bool bIsAiming = false;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Settings|Als Character|Desired State",
 		ReplicatedUsing = "OnReplicated_DesiredAiming", DisplayName = "期望瞄准状态")
 	uint8 bDesiredAiming : 1 {false};
@@ -112,6 +114,8 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State|Als Character", Transient, DisplayName = "翻滚状态")
 	FAlsRollingState RollingState;
 
+	UPROPERTY( VisibleAnywhere, BlueprintReadOnly,Replicated, Category = "State|Als Character", Transient, DisplayName = "脊柱旋转状态")
+	ESpineRotationState SpineRotationState{ESpineRotationState::YawAndPitch};
 
 	FTimerHandle BrakingFrictionFactorResetTimer;
 
@@ -154,7 +158,9 @@ private:
 	void RefreshMeshProperties() const;
 
 	void RefreshMovementBase();
-
+public:
+	UFUNCTION(BlueprintNativeEvent,BlueprintPure, Category = "Als Character")
+	USkeletalMeshComponent* GetItemMesh() const;
 	// View Mode
 
 public:
@@ -188,15 +194,31 @@ protected:
 	UFUNCTION(BlueprintImplementableEvent, Category = "Als Character")
 	void OnLocomotionModeChanged(const FGameplayTag& PreviousLocomotionMode);
 
+public:
+	UFUNCTION( BlueprintCallable, Category = "ALS|Character")
+	void SetSpineRotationState(ESpineRotationState NewSpineRotationState);
+	UFUNCTION( BlueprintPure, Category = "ALS|Character")
+	ESpineRotationState GetSpineRotationState() const;
+private:
+	UFUNCTION(Server ,Reliable)
+	void ServerSetSpineRotationState(ESpineRotationState NewSpineRotationState);
 	// Desired Aiming
 
 public:
+	UFUNCTION( BlueprintCallable, Category = "ALS|Character")
+	bool GetIsAiming() const;
+	UFUNCTION( BlueprintCallable, Category = "ALS|Character")
+	void SetAiming(bool bNewAiming);
+	
+	
 	bool IsDesiredAiming() const;
-
+	
 	UFUNCTION(BlueprintCallable, Category = "ALS|Character")
 	void SetDesiredAiming(bool bNewDesiredAiming);
 
 private:
+	UFUNCTION(Server, Reliable)
+	void ServerSetAiming(bool bNewAiming);
 	void SetDesiredAiming(bool bNewDesiredAiming, bool bSendRpc);
 
 	UFUNCTION(Client, Reliable)
@@ -204,7 +226,6 @@ private:
 
 	UFUNCTION(Server, Reliable)
 	void ServerSetDesiredAiming(bool bNewDesiredAiming);
-
 	UFUNCTION()
 	void OnReplicated_DesiredAiming(bool bPreviousDesiredAiming);
 
@@ -625,6 +646,11 @@ inline const FGameplayTag& AAlsCharacter::GetViewMode() const
 inline const FGameplayTag& AAlsCharacter::GetLocomotionMode() const
 {
 	return LocomotionMode;
+}
+
+inline bool AAlsCharacter::GetIsAiming() const
+{
+	return bIsAiming;
 }
 
 inline bool AAlsCharacter::IsDesiredAiming() const

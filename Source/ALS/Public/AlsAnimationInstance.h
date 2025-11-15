@@ -16,6 +16,7 @@
 #include "State/AlsPoseState.h"
 #include "State/AlsRagdollingAnimationState.h"
 #include "State/AlsRotateInPlaceState.h"
+#include "State/AlsSpineRotationState.h"
 #include "State/AlsSpineState.h"
 #include "State/AlsStandingState.h"
 #include "State/AlsTransitionsState.h"
@@ -56,7 +57,8 @@ protected:
 
 	mutable TArray<TFunction<void()>> DisplayDebugTracesQueue;
 #endif
-
+	UPROPERTY( VisibleAnywhere, BlueprintReadOnly, Category = "State", Transient)
+	bool bIsAiming{false};
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State", Transient)
 	FGameplayTag ViewMode{AlsViewModeTags::ThirdPerson};
 
@@ -134,6 +136,8 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State", Transient)
 	FAlsRagdollingAnimationState RagdollingState;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State", Transient)
+	ESpineRotationState SpineRotationState{ESpineRotationState::YawAndPitch};
 
 public:
 	virtual void NativeInitializeAnimation() override;

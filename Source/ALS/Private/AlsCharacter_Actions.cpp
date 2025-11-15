@@ -153,18 +153,23 @@ bool AAlsCharacter::IsMantlingAllowedToStart_Implementation() const
 {
 	return !LocomotionAction.IsValid();
 }
-
 bool AAlsCharacter::StartMantling(const FAlsMantlingTraceSettings& TraceSettings)
 {
+	// 如果翻越不被允许、当前为模拟代理或正在执行其他动作则直接返回
 	if (!Settings->Mantling.bAllowMantling || GetLocalRole() <= ROLE_SimulatedProxy || !IsMantlingAllowedToStart())
 	{
 		return false;
 	}
-
+	if (InputDirection.Size2D()<=0)
+	{
+		return false;
+	}
+	// 获取角色位置与朝向（以度为单位并展开到 -180..180）
 	const auto ActorLocation{GetActorLocation()};
 	const auto ActorYawAngle{UE_REAL_TO_FLOAT(FMath::UnwindDegrees(GetActorRotation().Yaw))};
 
 	float ForwardTraceAngle;
+	// 根据速度与输入确定前向检测角度
 	if (LocomotionState.bHasVelocity)
 	{
 		ForwardTraceAngle = LocomotionState.bHasInput
@@ -178,46 +183,57 @@ bool AAlsCharacter::StartMantling(const FAlsMantlingTraceSettings& TraceSettings
 		ForwardTraceAngle = LocomotionState.bHasInput ? LocomotionState.InputYawAngle : ActorYawAngle;
 	}
 
+	// 如果前向检测角度相对于角色朝向过大，则不允许翻越
 	const auto ForwardTraceDeltaAngle{FMath::UnwindDegrees(ForwardTraceAngle - ActorYawAngle)};
 	if (FMath::Abs(ForwardTraceDeltaAngle) > Settings->Mantling.TraceAngleThreshold)
 	{
 		return false;
 	}
 
+	// 计算用于前向检测的方向向量（在XY平面）
 	const auto ForwardTraceDirection{
 		UAlsVector::AngleToDirectionXY(
 			ActorYawAngle + FMath::ClampAngle(ForwardTraceDeltaAngle, -Settings->Mantling.MaxReachAngle, Settings->Mantling.MaxReachAngle))
 	};
 
 #if ENABLE_DRAW_DEBUG
+	// 调试显示开关（只在启用绘制调试时评估）
 	const auto bDisplayDebug{UAlsDebugUtility::ShouldDisplayDebugForActor(this, UAlsConstants::MantlingDebugDisplayName())};
 #endif
 
+	// 获取胶囊组件与缩放信息
 	const auto* Capsule{GetCapsuleComponent()};
 
 	const auto CapsuleScale{Capsule->GetComponentScale().Z};
 	const auto CapsuleRadius{Capsule->GetScaledCapsuleRadius()};
 	const auto CapsuleHalfHeight{Capsule->GetScaledCapsuleHalfHeight()};
 
+	// 胶囊底部位置（世界坐标）
 	const FVector CapsuleBottomLocation{ActorLocation.X, ActorLocation.Y, ActorLocation.Z - CapsuleHalfHeight};
 
+	// 用于前向检测的胶囊半径（稍微缩小以避免一些边界问题）
 	const auto TraceCapsuleRadius{CapsuleRadius - 1.0f};
 
+	// 岩沿高度范围差值（乘以缩放）
 	const auto LedgeHeightDelta{UE_REAL_TO_FLOAT((TraceSettings.LedgeHeight.GetMax() - TraceSettings.LedgeHeight.GetMin()) * CapsuleScale)};
 
-	// Trace forward to find an object the character cannot walk on.
+	// ------- 前向检测：找到一个角色无法行走通过的物体 -------
 
 	static const FName ForwardTraceTag{FString::Printf(TEXT("%hs (Forward Trace)"), __FUNCTION__)};
 
+	// 前向检测起点：胶囊底部向后偏移胶囊半径，并上移至可能的岩沿高度范围中心
 	auto ForwardTraceStart{CapsuleBottomLocation - ForwardTraceDirection * CapsuleRadius};
 	ForwardTraceStart.Z += (TraceSettings.LedgeHeight.X + TraceSettings.LedgeHeight.Y) *
 		0.5f * CapsuleScale - UCharacterMovementComponent::MAX_FLOOR_DIST;
 
+	// 前向检测终点：向前延伸一定距离（可触及距离 + 胶囊半径）
 	auto ForwardTraceEnd{ForwardTraceStart + ForwardTraceDirection * (CapsuleRadius + (TraceSettings.ReachDistance + 1.0f) * CapsuleScale)};
 
+	// 前向检测使用的胶囊高度（对应岩沿高度范围）
 	const auto ForwardTraceCapsuleHalfHeight{LedgeHeightDelta * 0.5f};
 
 	FHitResult ForwardTraceHit;
+	// 执行胶囊扫掠（检测第一个阻挡碰撞）
 	GetWorld()->SweepSingleByChannel(ForwardTraceHit, ForwardTraceStart, ForwardTraceEnd,
 	                                 FQuat::Identity, Settings->Mantling.MantlingTraceChannel,
 	                                 FCollisionShape::MakeCapsule(TraceCapsuleRadius, ForwardTraceCapsuleHalfHeight),
@@ -225,6 +241,7 @@ bool AAlsCharacter::StartMantling(const FAlsMantlingTraceSettings& TraceSettings
 
 	auto* TargetPrimitive{ForwardTraceHit.GetComponent()};
 
+	// 检查前向检测结果的有效性：需要是阻挡命中、组件有效、目标静止（速度阈值以内）、可被角色踏上且目标点不可走路
 	if (!ForwardTraceHit.IsValidBlockingHit() ||
 	    !IsValid(TargetPrimitive) ||
 	    TargetPrimitive->GetComponentVelocity().SizeSquared() > FMath::Square(Settings->Mantling.TargetPrimitiveSpeedThreshold) ||
@@ -234,6 +251,7 @@ bool AAlsCharacter::StartMantling(const FAlsMantlingTraceSettings& TraceSettings
 #if ENABLE_DRAW_DEBUG
 		if (bDisplayDebug)
 		{
+			// 绘制前向检测的调试视图（失败情况）
 			UAlsDebugUtility::DrawSweepSingleCapsuleAlternative(GetWorld(), ForwardTraceStart, ForwardTraceEnd, TraceCapsuleRadius,
 			                                                    ForwardTraceCapsuleHalfHeight, false, ForwardTraceHit, {0.0f, 0.25f, 1.0f},
 			                                                    {0.0f, 0.75f, 1.0f}, TraceSettings.bDrawFailedTraces ? 5.0f : 0.0f);
@@ -243,12 +261,14 @@ bool AAlsCharacter::StartMantling(const FAlsMantlingTraceSettings& TraceSettings
 		return false;
 	}
 
+	// 目标面朝向（沿XY平面的反射法线）——这将用于确定朝向与旋转
 	const auto TargetDirection{-ForwardTraceHit.ImpactNormal.GetSafeNormal2D()};
 
-	// Trace downward from the first trace's impact point and determine if the hit location is walkable.
+	// ------- 向下检测：从前向命中点向下检测以确定可行走位置 -------
 
 	static const FName DownwardTraceTag{FString::Printf(TEXT("%hs (Downward Trace)"), __FUNCTION__)};
 
+	// 对目标位置做一点偏移（把目标向外移动，以便角色不会卡住边缘）
 	const FVector2D TargetLocationOffset{TargetDirection * (TraceSettings.TargetLocationOffset * CapsuleScale)};
 
 	const FVector DownwardTraceStart{
@@ -265,21 +285,21 @@ bool AAlsCharacter::StartMantling(const FAlsMantlingTraceSettings& TraceSettings
 	};
 
 	FHitResult DownwardTraceHit;
+	// 执行球形扫掠以找到地面（用于判断是否可行走）
 	GetWorld()->SweepSingleByChannel(DownwardTraceHit, DownwardTraceStart, DownwardTraceEnd, FQuat::Identity,
 	                                 Settings->Mantling.MantlingTraceChannel, FCollisionShape::MakeSphere(TraceCapsuleRadius),
 	                                 {DownwardTraceTag, false, this}, Settings->Mantling.MantlingTraceResponses);
 
+	// 表面法线Z分量的余弦值，用于判断斜面倾角
 	const auto SlopeAngleCos{UE_REAL_TO_FLOAT(DownwardTraceHit.ImpactNormal.Z)};
 
-	// The approximate slope angle is used in situations where the normal slope angle cannot convey
-	// the true nature of the surface slope, for example, for a 45 degree staircase the slope
-	// angle will always be 90 degrees, while the approximate slope angle will be ~45 degrees.
-
+	// 近似斜面法线：用于处理楼梯等情况，避免常规法线给出误导角度
 	auto ApproximateSlopeNormal{DownwardTraceHit.Location - DownwardTraceHit.ImpactPoint};
 	ApproximateSlopeNormal.Normalize();
 
 	const auto ApproximateSlopeAngleCos{UE_REAL_TO_FLOAT(ApproximateSlopeNormal.Z)};
 
+	// 如果表面坡度过陡或不可行走，则不允许翻越
 	if (SlopeAngleCos < Settings->Mantling.SlopeAngleThresholdCos ||
 	    ApproximateSlopeAngleCos < Settings->Mantling.SlopeAngleThresholdCos ||
 	    !GetCharacterMovement()->IsWalkable(DownwardTraceHit))
@@ -287,6 +307,7 @@ bool AAlsCharacter::StartMantling(const FAlsMantlingTraceSettings& TraceSettings
 #if ENABLE_DRAW_DEBUG
 		if (bDisplayDebug)
 		{
+			// 绘制失败时的前向与向下检测调试信息
 			UAlsDebugUtility::DrawSweepSingleCapsuleAlternative(GetWorld(), ForwardTraceStart, ForwardTraceEnd, TraceCapsuleRadius,
 			                                                    ForwardTraceCapsuleHalfHeight, true, ForwardTraceHit, {0.0f, 0.25f, 1.0f},
 			                                                    {0.0f, 0.75f, 1.0f}, TraceSettings.bDrawFailedTraces ? 5.0f : 0.0f);
@@ -300,10 +321,11 @@ bool AAlsCharacter::StartMantling(const FAlsMantlingTraceSettings& TraceSettings
 		return false;
 	}
 
-	// Check that there is enough free space for the capsule at the target location.
+	// ------- 检查目标位置是否有足够空间放置角色胶囊 -------
 
 	static const FName TargetLocationTraceTag{FString::Printf(TEXT("%hs (Target Location Overlap)"), __FUNCTION__)};
 
+	// 目标位置和目标胶囊（胶囊中心）
 	const FVector TargetLocation{
 		DownwardTraceHit.Location.X,
 		DownwardTraceHit.Location.Y,
@@ -312,6 +334,7 @@ bool AAlsCharacter::StartMantling(const FAlsMantlingTraceSettings& TraceSettings
 
 	const FVector TargetCapsuleLocation{TargetLocation.X, TargetLocation.Y, TargetLocation.Z + CapsuleHalfHeight};
 
+	// 如果目标位置发生阻挡重叠则不能翻越
 	if (GetWorld()->OverlapBlockingTestByChannel(TargetCapsuleLocation, FQuat::Identity, Settings->Mantling.MantlingTraceChannel,
 	                                             FCollisionShape::MakeCapsule(CapsuleRadius, CapsuleHalfHeight),
 	                                             {TargetLocationTraceTag, false, this}, Settings->Mantling.MantlingTraceResponses))
@@ -319,6 +342,7 @@ bool AAlsCharacter::StartMantling(const FAlsMantlingTraceSettings& TraceSettings
 #if ENABLE_DRAW_DEBUG
 		if (bDisplayDebug)
 		{
+			// 绘制诊断信息并高亮目标胶囊位置（失败）
 			UAlsDebugUtility::DrawSweepSingleCapsuleAlternative(GetWorld(), ForwardTraceStart, ForwardTraceEnd, TraceCapsuleRadius,
 			                                                    ForwardTraceCapsuleHalfHeight, true, ForwardTraceHit, {0.0f, 0.25f, 1.0f},
 			                                                    {0.0f, 0.75f, 1.0f}, TraceSettings.bDrawFailedTraces ? 5.0f : 0.0f);
@@ -335,8 +359,7 @@ bool AAlsCharacter::StartMantling(const FAlsMantlingTraceSettings& TraceSettings
 		return false;
 	}
 
-	// Perform additional overlap at the approximate start location to
-	// ensure there are no vertical obstacles on the path, such as a ceiling.
+	// ------- 在近似起始位置做额外的重叠检测以确保路径上没有垂直障碍（如天花板） -------
 
 	static const FName StartLocationTraceTag{FString::Printf(TEXT("%hs (Start Location Overlap)"), __FUNCTION__)};
 
@@ -352,6 +375,7 @@ bool AAlsCharacter::StartMantling(const FAlsMantlingTraceSettings& TraceSettings
 		UE_REAL_TO_FLOAT(DownwardTraceHit.Location.Z - DownwardTraceEnd.Z) * 0.5f + TraceCapsuleRadius
 	};
 
+	// 如果起始位置有阻挡重叠则不能翻越
 	if (GetWorld()->OverlapBlockingTestByChannel(StartLocation, FQuat::Identity, Settings->Mantling.MantlingTraceChannel,
 	                                             FCollisionShape::MakeCapsule(TraceCapsuleRadius, StartLocationTraceCapsuleHalfHeight),
 	                                             {StartLocationTraceTag, false, this}, Settings->Mantling.MantlingTraceResponses))
@@ -359,6 +383,7 @@ bool AAlsCharacter::StartMantling(const FAlsMantlingTraceSettings& TraceSettings
 #if ENABLE_DRAW_DEBUG
 		if (bDisplayDebug)
 		{
+			// 绘制前向/向下检测与起始位置重叠的调试信息（失败）
 			UAlsDebugUtility::DrawSweepSingleCapsuleAlternative(GetWorld(), ForwardTraceStart, ForwardTraceEnd, TraceCapsuleRadius,
 			                                                    ForwardTraceCapsuleHalfHeight, true, ForwardTraceHit,
 			                                                    {0.0f, 0.25f, 1.0f},
@@ -377,6 +402,7 @@ bool AAlsCharacter::StartMantling(const FAlsMantlingTraceSettings& TraceSettings
 	}
 
 #if ENABLE_DRAW_DEBUG
+	// 绘制成功的检测结果（用于调试）
 	if (bDisplayDebug)
 	{
 		UAlsDebugUtility::DrawSweepSingleCapsuleAlternative(GetWorld(), ForwardTraceStart, ForwardTraceEnd, TraceCapsuleRadius,
@@ -389,24 +415,23 @@ bool AAlsCharacter::StartMantling(const FAlsMantlingTraceSettings& TraceSettings
 	}
 #endif
 
+	// 目标旋转（面向目标方向）
 	const auto TargetRotation{TargetDirection.ToOrientationQuat()};
 
+	// 填充翻越参数
 	FAlsMantlingParameters Parameters;
 
 	Parameters.TargetPrimitive = TargetPrimitive;
 	Parameters.MantlingHeight = UE_REAL_TO_FLOAT((TargetLocation.Z - CapsuleBottomLocation.Z) / CapsuleScale);
 
-	// Determine the mantling type by checking the movement mode and mantling height.
-
+	// 根据当前运动模式与翻越高度判断翻越类型（地面 / 空中 / 高 / 低）
 	Parameters.MantlingType = LocomotionMode != AlsLocomotionModeTags::Grounded
 		                          ? EAlsMantlingType::InAir
 		                          : Parameters.MantlingHeight > Settings->Mantling.MantlingHighHeightThreshold
 		                          ? EAlsMantlingType::High
 		                          : EAlsMantlingType::Low;
 
-	// If the target primitive can't move, then use world coordinates to save
-	// some performance by skipping some coordinate space transformations later.
-
+	// 如果目标组件使用相对位置，则将目标位置转换为相对坐标以节省后续计算
 	if (MovementBaseUtility::UseRelativeLocation(TargetPrimitive))
 	{
 		const auto TargetRelativeTransform{
@@ -422,12 +447,15 @@ bool AAlsCharacter::StartMantling(const FAlsMantlingTraceSettings& TraceSettings
 		Parameters.TargetRelativeRotation = TargetRotation.Rotator();
 	}
 
+	// 根据本地角色权限选择直接执行或网络同步
 	if (GetLocalRole() >= ROLE_Authority)
 	{
+		// 在服务器上直接广播开始翻越
 		MulticastStartMantling(Parameters);
 	}
 	else
 	{
+		// 客户端先刷新服务端移动，然后本地执行并请求服务器执行
 		GetCharacterMovement()->FlushServerMoves();
 
 		StartMantlingImplementation(Parameters);
@@ -436,7 +464,6 @@ bool AAlsCharacter::StartMantling(const FAlsMantlingTraceSettings& TraceSettings
 
 	return true;
 }
-
 void AAlsCharacter::ServerStartMantling_Implementation(const FAlsMantlingParameters& Parameters)
 {
 	if (IsMantlingAllowedToStart())

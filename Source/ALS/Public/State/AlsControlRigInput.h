@@ -1,4 +1,5 @@
 #pragma once
+#include "AlsSpineRotationState.h"
 
 #include "AlsControlRigInput.generated.h"
 
@@ -38,4 +39,14 @@ struct ALS_API FAlsControlRigInput
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ALS", Meta = (ClampMin = -180, ClampMax = 180, ForceUnits = "deg"))
 	float SpineYawAngle{0.0f};
+
+	// 上下90度
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ALS", Meta = (ClampMin = -90, ClampMax = 90, ForceUnits = "deg"))
+	float SpinePitchAngle{0.0f};
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ALS")
+	ESpineRotationState SpineRotationState{ESpineRotationState::Unknown};
+
+	UPROPERTY( EditAnywhere, BlueprintReadWrite, Category = "ALS")
+	bool bEnableSpinePitchRotation{false};
 };

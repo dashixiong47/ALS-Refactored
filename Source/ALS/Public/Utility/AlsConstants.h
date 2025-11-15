@@ -135,6 +135,14 @@ public:
 	UFUNCTION(BlueprintPure, Category = "ALS|Constants|Animation Curves", Meta = (ReturnDisplayName = "Curve Name"))
 	static const FName& HipsDirectionLockCurveName();
 
+	UFUNCTION(BlueprintPure, Category = "ALS|Constants|Animation Curves", Meta = (ReturnDisplayName = "Curve Name"))
+	static const FName& ToRightHandIKCurveName();
+	UFUNCTION(BlueprintPure, Category = "ALS|Constants|Animation Curves", Meta = (ReturnDisplayName = "Curve Name"))
+	static const FName& ToLeftHandIKCurveName();
+	
+	UFUNCTION(BlueprintPure, Category = "ALS|Constants|Animation Curves", Meta = (ReturnDisplayName = "Curve Name"))
+	static const FName& CurvesCurveName();
+
 	// Pose Animation Curves
 
 	UFUNCTION(BlueprintPure, Category = "ALS|Constants|Animation Curves", Meta = (ReturnDisplayName = "Curve Name"))
@@ -450,6 +458,24 @@ inline const FName& UAlsConstants::AllowAimingCurveName()
 inline const FName& UAlsConstants::HipsDirectionLockCurveName()
 {
 	static const FName Name{TEXTVIEW("HipsDirectionLock")};
+	return Name;
+}
+
+inline const FName& UAlsConstants::ToRightHandIKCurveName()
+{
+	static const FName Name{TEXTVIEW("ToRightHandIK")};
+	return Name;
+}
+
+inline const FName& UAlsConstants::ToLeftHandIKCurveName()
+{
+	static const FName Name{TEXTVIEW("ToLeftHandIK")};
+	return Name;
+}
+
+inline const FName& UAlsConstants::CurvesCurveName()
+{
+	static const FName Name{TEXTVIEW("Curves")};
 	return Name;
 }
 

@@ -11,9 +11,9 @@ AALSBasePlayer::AALSBasePlayer()
 {
 	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
-	Camera = CreateDefaultSubobject<UAlsCameraComponent>(FName{TEXTVIEW("Camera")});
-	Camera->SetupAttachment(GetMesh());
-	Camera->SetRelativeRotation_Direct({0.0f, 90.0f, 0.0f});
+	// Camera = CreateDefaultSubobject<UAlsCameraComponent>(FName{TEXTVIEW("Camera")});
+	// Camera->SetupAttachment(GetMesh());
+	// Camera->SetRelativeRotation_Direct({0.0f, 90.0f, 0.0f});
 }
 
 // Called when the game starts or when spawned
@@ -23,16 +23,16 @@ void AALSBasePlayer::BeginPlay()
 	
 }
 
-void AALSBasePlayer::CalcCamera(float DeltaTime, FMinimalViewInfo& ViewInfo)
-{
-	if (Camera->IsActive())
-	{
-		Camera->GetViewInfo(ViewInfo);
-		return;
-	}
-
-	Super::CalcCamera(DeltaTime, ViewInfo);
-}
+// void AALSBasePlayer::CalcCamera(float DeltaTime, FMinimalViewInfo& ViewInfo)
+// {
+// 	if (Camera->IsActive())
+// 	{
+// 		Camera->GetViewInfo(ViewInfo);
+// 		return;
+// 	}
+//
+// 	Super::CalcCamera(DeltaTime, ViewInfo);
+// }
 
 // Called every frame
 void AALSBasePlayer::Tick(float DeltaTime)
@@ -44,5 +44,26 @@ void AALSBasePlayer::Tick(float DeltaTime)
 void AALSBasePlayer::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
+}
+
+void AALSBasePlayer::BindPlayMontageNotify()
+{
+	GetMesh()->GetAnimInstance()->OnPlayMontageNotifyBegin.AddUniqueDynamic( this, &AALSBasePlayer::PlayMontageNotify);
+}
+
+void AALSBasePlayer::UnbindPlayMontageNotify()
+{
+	GetMesh()->GetAnimInstance()->OnPlayMontageNotifyBegin.RemoveDynamic( this, &AALSBasePlayer::PlayMontageNotify);
+}
+
+void AALSBasePlayer::PlayMontageNotify(FName NotifyName, const FBranchingPointNotifyPayload& BranchingPointPayload)
+{
+	OnPlayMontageNotify.Broadcast(NotifyName);
+}
+
+void AALSBasePlayer::SetGenericTeamId(const FGenericTeamId& NewTeamID)
+{
+	IGenericTeamAgentInterface::SetGenericTeamId(NewTeamID);
+	TeamId = NewTeamID;
 }
 

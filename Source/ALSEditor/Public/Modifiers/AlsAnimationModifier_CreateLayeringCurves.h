@@ -16,56 +16,54 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Settings", DisplayName="每帧添加关键点")
 	uint8 bAddKeyOnEachFrame : 1 {false};
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Settings", DisplayName="曲线值")
-	float CurveValue{0.0f};
-
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Settings", DisplayName="曲线名称")
-	TArray<FName> CurveNames
+	TMap<FName, float> CurveNames
 	{
-		UAlsConstants::LayerHeadCurveName(),
-		UAlsConstants::LayerHeadAdditiveCurveName(),
-		UAlsConstants::LayerArmLeftCurveName(),
-		UAlsConstants::LayerArmLeftAdditiveCurveName(),
-		UAlsConstants::LayerArmLeftLocalSpaceCurveName(),
-		UAlsConstants::LayerArmRightCurveName(),
-		UAlsConstants::LayerArmRightAdditiveCurveName(),
-		UAlsConstants::LayerArmRightLocalSpaceCurveName(),
-		UAlsConstants::LayerHandLeftCurveName(),
-		UAlsConstants::LayerHandRightCurveName(),
-		UAlsConstants::LayerSpineCurveName(),
-		UAlsConstants::LayerSpineAdditiveCurveName(),
-		UAlsConstants::LayerPelvisCurveName(),
-		UAlsConstants::LayerLegsCurveName(),
+		{UAlsConstants::ToLeftHandIKCurveName(), 1.0f},
+		{UAlsConstants::ToRightHandIKCurveName(), 1.0f},
+		{UAlsConstants::LayerHeadCurveName(), 1.0f},
+		{UAlsConstants::LayerHeadAdditiveCurveName(), 0.0f},
+		{UAlsConstants::LayerArmLeftCurveName(), 0.0f},
+		{UAlsConstants::LayerArmLeftAdditiveCurveName(), 0.0f},
+		{UAlsConstants::LayerArmLeftLocalSpaceCurveName(), 0.0f},
+		{UAlsConstants::LayerArmRightCurveName(), 0.0f},
+		{UAlsConstants::LayerArmRightAdditiveCurveName(), 0.0f},
+		{UAlsConstants::LayerArmRightLocalSpaceCurveName(), 0.0f},
+		{UAlsConstants::LayerHandLeftCurveName(), 0.0f},
+		{UAlsConstants::LayerHandRightCurveName(), 0.0f},
+		{UAlsConstants::LayerSpineCurveName(), 1.0f},
+		{UAlsConstants::LayerSpineAdditiveCurveName(), 0.0f},
+		{UAlsConstants::LayerPelvisCurveName(), 0.0f},
+		{UAlsConstants::LayerLegsCurveName(), 0.0f},
 
-		UAlsConstants::HandLeftIkCurveName(),
-		UAlsConstants::HandRightIkCurveName(),
+		{UAlsConstants::HandLeftIkCurveName(), 0.0f},
+		{UAlsConstants::HandRightIkCurveName(), 0.0f},
 
-		UAlsConstants::ViewBlockCurveName(),
-		UAlsConstants::AllowAimingCurveName(),
+		{UAlsConstants::ViewBlockCurveName(), 0.0f},
+		{UAlsConstants::AllowAimingCurveName(), 1.0f},
 
-		UAlsConstants::HipsDirectionLockCurveName(),
+		{UAlsConstants::HipsDirectionLockCurveName(), 0.0f},
 	};
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Settings", DisplayName="添加插槽曲线")
 	uint8 bAddSlotCurves : 1 {false};
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Settings", DisplayName="插槽曲线值")
-	float SlotCurveValue{1.0f};
-
+	// 插槽曲线名称及其默认值
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Settings", DisplayName="插槽曲线名称")
-	TArray<FName> SlotCurveNames
+	TMap<FName, float> SlotCurveNames
 	{
-		UAlsConstants::LayerHeadSlotCurveName(),
-		UAlsConstants::LayerArmLeftSlotCurveName(),
-		UAlsConstants::LayerArmRightSlotCurveName(),
-		UAlsConstants::LayerSpineSlotCurveName(),
-		UAlsConstants::LayerPelvisSlotCurveName(),
-		UAlsConstants::LayerLegsSlotCurveName(),
+		{UAlsConstants::LayerHeadSlotCurveName(), 0.0f},
+		{UAlsConstants::LayerArmLeftSlotCurveName(), 1.0f},
+		{UAlsConstants::LayerArmRightSlotCurveName(), 1.0f},
+		{UAlsConstants::LayerSpineSlotCurveName(), 0.0f},
+		{UAlsConstants::LayerPelvisSlotCurveName(), 0.0f},
+		{UAlsConstants::LayerLegsSlotCurveName(), 0.0f},
+		{UAlsConstants::CurvesCurveName(),1.0f}
 	};
 
 public:
 	virtual void OnApply_Implementation(UAnimSequence* Sequence) override;
 
 private:
-	void CreateCurves(UAnimSequence* Sequence, const TArray<FName>& Names, float Value) const;
+	void CreateCurves(UAnimSequence* Sequence, const TMap<FName, float>& Curves) const;
 };
