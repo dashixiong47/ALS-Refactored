@@ -240,7 +240,6 @@ FAlsControlRigInput UAlsAnimationInstance::GetControlRigInput() const
 		.FootLeftRotation{FQuat{FeetState.Left.FinalRotation}},
 		.FootRightLocation{FVector{FeetState.Right.FinalLocation}},
 		.FootRightRotation{FQuat{FeetState.Right.FinalRotation}},
-		.SpineYawAngle = SpineState.YawAngle,
 		.SpinePitchAngle = ViewState.PitchAngle,
 		.SpineRotationState = Character->GetSpineRotationState(),
 		.bEnableSpinePitchRotation=Character->IsLocallyControlled()
@@ -401,7 +400,7 @@ void UAlsAnimationInstance::RefreshView(const float DeltaTime)
 
 	// LookAmount 控制角色的“看向”动画效果
 	// 当瞄准时 LookAmount 会减弱（因为角色正专注于瞄准方向）
-	ViewState.LookAmount = ViewAmount * (1.0f - AimingAmount);
+	// ViewState.LookAmount = ViewAmount * (1.0f - AimingAmount);
 
 	// 刷新脊柱动画（上半身朝向），通过视角和瞄准混合控制
 	RefreshSpine(ViewAmount * AimingAmount, DeltaTime);
