@@ -953,11 +953,11 @@ void UAlsCharacterMovementComponent::RefreshGroundedMovementSettings()
 			1.0f - UAlsMath::Clamp01(MovementSettings->VelocityAngleToSpeedInterpolationRange
 			                                         .GetRangePct(static_cast<float>(FMath::Abs(VelocityAngle))))
 		};
-
+	
 		WalkSpeed = FMath::Lerp(GaitSettings.WalkBackwardSpeed, GaitSettings.WalkForwardSpeed, ForwardSpeedAmount);
 		RunSpeed = FMath::Lerp(GaitSettings.RunBackwardSpeed, GaitSettings.RunForwardSpeed, ForwardSpeedAmount);
 	}
-
+	// UE_LOG( LogTemp, Warning, TEXT("WalkSpeed: %f, RunSpeed: %f"), WalkSpeed, RunSpeed );
 	// Map the character's current speed to the to the speed ranges from the movement settings. This allows
 	// us to vary movement speeds but still use the mapped range in calculations for consistent results.
 

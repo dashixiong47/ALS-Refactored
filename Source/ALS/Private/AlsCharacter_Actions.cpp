@@ -155,6 +155,8 @@ bool AAlsCharacter::IsMantlingAllowedToStart_Implementation() const
 }
 bool AAlsCharacter::StartMantling(const FAlsMantlingTraceSettings& TraceSettings)
 {
+	UE_LOG( LogTemp, Warning, TEXT("RootMotionSource IsServer:{%s}"), 
+	 		*UEnum::GetValueAsString(GetLocalRole()));
 	// 如果翻越不被允许、当前为模拟代理或正在执行其他动作则直接返回
 	if (!Settings->Mantling.bAllowMantling || GetLocalRole() <= ROLE_SimulatedProxy || !IsMantlingAllowedToStart())
 	{
@@ -477,44 +479,47 @@ void AAlsCharacter::MulticastStartMantling_Implementation(const FAlsMantlingPara
 {
 	StartMantlingImplementation(Parameters);
 }
-
 void AAlsCharacter::StartMantlingImplementation(const FAlsMantlingParameters& Parameters)
 {
+
+	// 检查是否允许开始翻越
 	if (!IsMantlingAllowedToStart())
 	{
 		return;
 	}
 
+	// 选择翻越设置（根据翻越类型）
 	const auto* MantlingSettings{SelectMantlingSettings(Parameters.MantlingType)};
 
+	// 确保设置和蒙太奇有效
 	if (!ALS_ENSURE(IsValid(MantlingSettings)) || !ALS_ENSURE(IsValid(MantlingSettings->Montage)))
 	{
 		return;
 	}
 
-	// Reset network smoothing.
-
+	// 重置网络平滑（避免网络插值干扰根运动）
 	GetCharacterMovement()->NetworkSmoothingMode = ENetworkSmoothingMode::Disabled;
 
+	// 将网格回复到基础相对位置与旋转（用于正确的根运动提取）
 	GetMesh()->SetRelativeLocationAndRotation(GetBaseTranslationOffset(),
 	                                          GetMesh()->IsUsingAbsoluteRotation()
 		                                          ? GetActorQuat() * GetBaseRotationOffset()
 		                                          : GetBaseRotationOffset(), false, nullptr, ETeleportType::TeleportPhysics);
 
-	// Clear the character movement mode and set the locomotion action to mantling.
-
+	// 清除角色移动模式并将动作设置为翻越（自定义移动）
 	GetCharacterMovement()->SetMovementMode(MOVE_Custom);
 	AlsCharacterMovement->SetMovementModeLocked(true);
 
+	// 将移动基座设置为目标碰撞体（以便相对位置使用）
 	GetCharacterMovement()->SetBase(Parameters.TargetPrimitive.Get());
 
-	// Create mantling root motion.
-
+	// 创建并初始化翻越的根运动来源
 	const auto RootMotionSource{MakeShared<FAlsRootMotionSource_Mantling>()};
 	RootMotionSource->InstanceName = __FUNCTION__;
 	RootMotionSource->MantlingSettings = MantlingSettings;
 	RootMotionSource->TargetPrimitive = Parameters.TargetPrimitive;
 
+	// 计算蒙太奇起始时间、持续时长和播放速率
 	const auto StartTime{CalculateMantlingStartTime(MantlingSettings, Parameters.MantlingHeight)};
 	const auto Duration{MantlingSettings->Montage->GetPlayLength() - StartTime};
 	const auto PlayRate{MantlingSettings->Montage->RateScale};
@@ -522,11 +527,11 @@ void AAlsCharacter::StartMantlingImplementation(const FAlsMantlingParameters& Pa
 	RootMotionSource->Duration = Duration / PlayRate;
 	RootMotionSource->MontageStartTime = StartTime;
 
+	// 判断是否使用相对位置（目标组件是否使用相对位置）
 	const auto bUseRelativeLocation{MovementBaseUtility::UseRelativeLocation(Parameters.TargetPrimitive.Get())};
 	const FTransform MeshTransform{GetBaseRotationOffset()};
 
-	// Extract the initial root transform, invert it, convert from the mesh space to the actor space, and apply it to the actor's transform.
-
+	// 提取初始根变换，转换并应用到 actor 的起始变换
 	const auto ActorTransform{GetActorTransform()};
 
 	auto StartRootTransform{UAlsMontageUtility::ExtractRootTransformFromMontage(MantlingSettings->Montage, StartTime)};
@@ -537,20 +542,19 @@ void AAlsCharacter::StartMantlingImplementation(const FAlsMantlingParameters& Pa
 
 	if (bUseRelativeLocation)
 	{
-		// Convert the actor's transform to be relative to the target primitive.
+		// 如果目标使用相对位置，则将起始变换转换为相对于目标碰撞体的变换
 		StartTransform.SetToRelativeTransform(Parameters.TargetPrimitive->GetComponentTransform());
 	}
 
 	RootMotionSource->StartRotation = StartTransform.Rotator();
 	RootMotionSource->StartLocation = StartTransform.GetLocation();
 
-	// Extract the final root transform, invert it, convert from the mesh space to the actor space, and apply it to the target transform.
-
+	// 提取最终根变换，转换并应用到目标变换
 	FTransform TargetTransform{Parameters.TargetRotation.GetNormalized(), Parameters.TargetLocation};
 
 	if (bUseRelativeLocation)
 	{
-		// Convert the relative target transform back to world space.
+		// 如果目标为相对位置，先转换回世界空间再继续计算
 		TargetTransform *= Parameters.TargetPrimitive->GetComponentTransform();
 		TargetTransform.SetScale3D(FVector::OneVector);
 	}
@@ -563,23 +567,27 @@ void AAlsCharacter::StartMantlingImplementation(const FAlsMantlingParameters& Pa
 
 	if (bUseRelativeLocation)
 	{
-		// Convert the target transform to be relative to the target primitive.
+		// 将目标变换转换为相对于目标碰撞体的变换，以便在复制时节省网络带宽
 		NewTargetTransform.SetToRelativeTransform(Parameters.TargetPrimitive->GetComponentTransform());
 	}
-
 	RootMotionSource->TargetRotation = NewTargetTransform.Rotator();
 	RootMotionSource->TargetLocation = NewTargetTransform.GetLocation();
-
-	// Apply root motion.
+	// 打印RootMotionSource
+	// UE_LOG( LogTemp, Warning, TEXT("RootMotionSource IsServer:{%s} StartLocation: %s, StartRotation: %s, TargetLocation: %s, TargetRotation: %s"), 
+	//  		*UEnum::GetValueAsString(GetLocalRole()),
+	// *RootMotionSource->StartLocation.ToString(), *RootMotionSource->StartRotation.ToString(),
+	// 	*RootMotionSource->TargetLocation.ToString(), *RootMotionSource->TargetRotation.ToString() 
+	// );
+	// 应用根运动来源到角色移动组件
 	MantlingState.RootMotionSourceId = GetCharacterMovement()->ApplyRootMotionSource(RootMotionSource);
 
-	// Play the animation montage if valid.
-
+	// 播放翻越蒙太奇（如果有效）并设置当前动作为翻越
 	if (GetMesh()->GetAnimInstance()->Montage_Play(MantlingSettings->Montage) > 0.0f)
 	{
 		SetLocomotionAction(AlsLocomotionActionTags::Mantling);
 	}
 
+	// 触发翻越开始的事件回调
 	OnMantlingStarted(Parameters);
 }
 

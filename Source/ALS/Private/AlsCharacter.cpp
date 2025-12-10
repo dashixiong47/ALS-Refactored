@@ -288,7 +288,6 @@ void AAlsCharacter::Tick(const float DeltaTime)
 		Super::Tick(DeltaTime);
 		return;
 	}
-
 	RefreshMovementBase();
 
 	RefreshMeshProperties();
@@ -313,6 +312,7 @@ void AAlsCharacter::Tick(const float DeltaTime)
 	Super::Tick(DeltaTime);
 
 	RefreshLocomotionLate();
+	
 }
 
 void AAlsCharacter::PossessedBy(AController* NewController)
@@ -587,12 +587,13 @@ void AAlsCharacter::NotifyLocomotionModeChanged(const FGameplayTag& PreviousLoco
 void AAlsCharacter::SetSpineRotationState(ESpineRotationState NewSpineRotationState)
 {
 	SpineRotationState = NewSpineRotationState;
-	// 如果过不是服务器则通知服务器
-	if (GetLocalRole() < ROLE_Authority)
-	{
-		ServerSetSpineRotationState(NewSpineRotationState);
-	}
-	
+	// ForceNetUpdate();
+	// // 如果过不是服务器则通知服务器
+	// if (GetLocalRole() < ROLE_Authority)
+	// {
+	// 	ServerSetSpineRotationState(NewSpineRotationState);
+	// }
+	//
 }
 
 ESpineRotationState AAlsCharacter::GetSpineRotationState() const
