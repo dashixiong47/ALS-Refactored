@@ -22,6 +22,10 @@
 namespace AlsCharacter
 {
 	constexpr auto MinAimingYawAngleLimit{70.0f};
+	constexpr auto TopDownIdleRotationInterpolationHalfLife{0.1f};
+	constexpr auto TopDownInAirRotationInterpolationHalfLife{0.15f};
+	constexpr auto TopDownIdleRotationSpeed{1440.0f};
+	constexpr auto TopDownMovingRotationSpeed{1080.0f};
 }
 
 AAlsCharacter::AAlsCharacter(const FObjectInitializer& ObjectInitializer) : Super{
@@ -103,7 +107,9 @@ void AAlsCharacter::PreRegisterAllComponents()
 	Stance = DesiredStance;
 	Gait = DesiredGait;
 
-	SetReplicatedViewRotation(Super::GetViewRotation().GetNormalized(), false);
+	SetReplicatedViewRotation(
+		bUseTopDownFacing ? FRotator{0.0f, UE_REAL_TO_FLOAT(GetActorRotation().Yaw), 0.0f} : Super::GetViewRotation().GetNormalized(),
+		false);
 
 	ViewState.NetworkSmoothing.InitialRotation = ReplicatedViewRotation;
 	ViewState.NetworkSmoothing.TargetRotation = ReplicatedViewRotation;
@@ -378,7 +384,7 @@ void AAlsCharacter::RefreshMeshProperties() const
 	const auto bStandingOnRotatingObject{MovementBase.bHasRelativeRotation};
 
 	const auto bUseAbsoluteRotation{
-		bMeshIsTicking && !bDedicatedServer && !bLocallyControlled && !bStandingOnRotatingObject &&
+		bMeshIsTicking && !bDedicatedServer && !bLocallyControlled && !bStandingOnRotatingObject && !bUseTopDownFacing &&
 		(bUROActive || bAutonomousProxyOnListenServer)
 	};
 
@@ -1109,6 +1115,30 @@ FRotator AAlsCharacter::GetViewRotation() const
 	return ViewState.Rotation;
 }
 
+void AAlsCharacter::SetTopDownFacingYaw(const float NewYaw)
+{
+	if (!bUseTopDownFacing || GetLocalRole() < ROLE_AutonomousProxy)
+	{
+		return;
+	}
+
+	const auto NewViewRotation{FRotator{0.0f, FMath::UnwindDegrees(NewYaw), 0.0f}};
+	SetReplicatedViewRotation(NewViewRotation, GetLocalRole() == ROLE_AutonomousProxy);
+
+	if (IsLocallyControlled() || (GetLocalRole() >= ROLE_Authority && !IsLocallyControlled()))
+	{
+		ViewState.NetworkSmoothing.InitialRotation = NewViewRotation;
+		ViewState.NetworkSmoothing.TargetRotation = NewViewRotation;
+		ViewState.NetworkSmoothing.CurrentRotation = NewViewRotation;
+		ViewState.Rotation = NewViewRotation;
+	}
+}
+
+float AAlsCharacter::GetTopDownFacingYaw() const
+{
+	return UE_REAL_TO_FLOAT(FMath::UnwindDegrees(ViewState.Rotation.Yaw));
+}
+
 void AAlsCharacter::SetInputDirection(FVector NewInputDirection)
 {
 	NewInputDirection = NewInputDirection.GetSafeNormal();
@@ -1219,6 +1249,31 @@ void AAlsCharacter::CorrectViewNetworkSmoothing(const FRotator& NewTargetRotatio
 
 void AAlsCharacter::RefreshView(const float DeltaTime)
 {
+	if (bUseTopDownFacing)
+	{
+		ViewState.PreviousYawAngle = UE_REAL_TO_FLOAT(ViewState.Rotation.Yaw);
+
+		if (GetLocalRole() >= ROLE_Authority && !IsLocallyControlled())
+		{
+			ViewState.NetworkSmoothing.InitialRotation = ReplicatedViewRotation;
+			ViewState.NetworkSmoothing.TargetRotation = ReplicatedViewRotation;
+			ViewState.NetworkSmoothing.CurrentRotation = ReplicatedViewRotation;
+			ViewState.Rotation = ReplicatedViewRotation;
+		}
+		else
+		{
+			RefreshViewNetworkSmoothing(DeltaTime);
+			ViewState.Rotation = ViewState.NetworkSmoothing.CurrentRotation;
+		}
+
+		if (DeltaTime > UE_SMALL_NUMBER)
+		{
+			ViewState.YawSpeed = FMath::Abs(UE_REAL_TO_FLOAT(ViewState.Rotation.Yaw - ViewState.PreviousYawAngle)) / DeltaTime;
+		}
+
+		return;
+	}
+
 	if (MovementBase.bHasRelativeRotation)
 	{
 		// Offset the rotations to keep them relative to the movement base.
@@ -1518,6 +1573,39 @@ void AAlsCharacter::RefreshGroundedRotation(const float DeltaTime)
 	if (HasAnyRootMotion())
 	{
 		RefreshTargetYawAngleUsingActorRotation();
+		return;
+	}
+
+	if (bUseTopDownFacing)
+	{
+		const auto TargetYawAngle{UE_REAL_TO_FLOAT(ViewState.Rotation.Yaw)};
+		const auto CurrentYawAngle{UE_REAL_TO_FLOAT(GetActorRotation().Yaw)};
+
+		if (GetLocalRole() >= ROLE_Authority && !IsLocallyControlled())
+		{
+			if (!FMath::IsNearlyZero(FMath::FindDeltaAngleDegrees(CurrentYawAngle, TargetYawAngle), 0.1f))
+			{
+				SetRotationInstant(TargetYawAngle);
+			}
+			else
+			{
+				RefreshTargetYawAngleUsingActorRotation();
+			}
+
+			return;
+		}
+
+		if (FMath::IsNearlyZero(FMath::FindDeltaAngleDegrees(CurrentYawAngle, TargetYawAngle), 0.1f))
+		{
+			RefreshTargetYawAngleUsingActorRotation();
+			return;
+		}
+
+		SetRotationExtraSmooth(
+			TargetYawAngle,
+			DeltaTime,
+			LocomotionState.bMoving ? CalculateGroundedMovingRotationInterpolationHalfLife() : AlsCharacter::TopDownIdleRotationInterpolationHalfLife,
+			LocomotionState.bMoving ? AlsCharacter::TopDownMovingRotationSpeed : AlsCharacter::TopDownIdleRotationSpeed);
 		return;
 	}
 
@@ -1821,6 +1909,20 @@ void AAlsCharacter::RefreshInAirRotation(const float DeltaTime)
 
 	if (RefreshCustomInAirRotation(DeltaTime))
 	{
+		return;
+	}
+
+	if (bUseTopDownFacing)
+	{
+		const auto TargetYawAngle{UE_REAL_TO_FLOAT(ViewState.Rotation.Yaw)};
+		if (GetLocalRole() >= ROLE_Authority && !IsLocallyControlled())
+		{
+			SetRotationInstant(TargetYawAngle);
+		}
+		else
+		{
+			SetRotationSmooth(TargetYawAngle, DeltaTime, AlsCharacter::TopDownInAirRotationInterpolationHalfLife);
+		}
 		return;
 	}
 

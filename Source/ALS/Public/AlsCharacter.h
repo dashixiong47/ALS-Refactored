@@ -80,6 +80,10 @@ protected:
 		ReplicatedUsing = "OnReplicated_ReplicatedViewRotation")
 	FRotator ReplicatedViewRotation{ForceInit};
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "ALS|Character|View",
+		Meta = (DisplayName = "Enable Top Down Facing", ToolTip = "Uses an explicit top-down yaw as the ALS view and facing source."))
+	uint8 bUseTopDownFacing : 1 {false};
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State|Als Character", Transient)
 	FAlsViewState ViewState;
 
@@ -366,6 +370,15 @@ protected:
 
 public:
 	virtual FRotator GetViewRotation() const override;
+
+	UFUNCTION(BlueprintPure, Category = "ALS|Character|View", Meta = (DisplayName = "Is Using Top Down Facing", ToolTip = "Returns whether ALS is using explicit top-down facing."))
+	bool IsUsingTopDownFacing() const;
+
+	UFUNCTION(BlueprintCallable, Category = "ALS|Character|View", Meta = (DisplayName = "Set Top Down Facing Yaw", ToolTip = "Updates the ALS top-down facing yaw and synchronizes it over the network."))
+	void SetTopDownFacingYaw(float NewYaw);
+
+	UFUNCTION(BlueprintPure, Category = "ALS|Character|View", Meta = (DisplayName = "Get Top Down Facing Yaw", ToolTip = "Returns the current ALS top-down facing yaw."))
+	float GetTopDownFacingYaw() const;
 
 private:
 	void SetReplicatedViewRotation(const FRotator& NewViewRotation, bool bSendRpc);
@@ -671,6 +684,11 @@ inline FGameplayTag AAlsCharacter::GetLocomotionAction() const
 inline const FVector& AAlsCharacter::GetInputDirection() const
 {
 	return InputDirection;
+}
+
+inline bool AAlsCharacter::IsUsingTopDownFacing() const
+{
+	return bUseTopDownFacing;
 }
 
 inline const FAlsViewState& AAlsCharacter::GetViewState() const
