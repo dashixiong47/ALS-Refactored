@@ -4,13 +4,14 @@
 #include "Animation/AnimNotifies/AnimNotifyState.h"
 #include "AlsAnimNotifyState_SetLocomotionAction.generated.h"
 
-UCLASS(DisplayName = "Als Set Locomotion Action Animation Notify State")
+UCLASS(DisplayName = "ALS 设置移动动作动画通知状态")
 class ALS_API UAlsAnimNotifyState_SetLocomotionAction : public UAnimNotifyState
 {
 	GENERATED_BODY()
 
 protected:
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Settings")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "ALS|通知|设置",
+		Meta = (DisplayName = "移动动作", ToolTip = "通知持续期间要设置到角色上的移动动作标签。"))
 	FGameplayTag LocomotionAction;
 
 public:

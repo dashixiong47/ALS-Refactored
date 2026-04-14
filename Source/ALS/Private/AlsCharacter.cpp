@@ -8,6 +8,7 @@
 #include "Curves/CurveFloat.h"
 #include "GameFramework/GameNetworkManager.h"
 #include "GameFramework/PlayerController.h"
+#include "HAL/IConsoleManager.h"
 #include "Net/UnrealNetwork.h"
 #include "Net/Core/PushModel/PushModel.h"
 #include "Settings/AlsCharacterSettings.h"
@@ -18,6 +19,22 @@
 #include "Utility/AlsVector.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(AlsCharacter)
+
+DEFINE_LOG_CATEGORY_STATIC(LogAlsTopDownCharacterNetDebug, Log, All);
+
+namespace AlsTopDownCharacterNetDebug
+{
+	static TAutoConsoleVariable<int32> CVarEnable(
+		TEXT("als.TopDown.NetDebug"),
+		0,
+		TEXT("Enable ALS TopDown client/server aim debug logging.\n0: Disabled\n1: Enabled"),
+		ECVF_Default);
+
+	static bool IsEnabled()
+	{
+		return CVarEnable.GetValueOnAnyThread() != 0;
+	}
+}
 
 namespace AlsCharacter
 {
@@ -337,6 +354,12 @@ bool AAlsCharacter::OnCalculateCamera_Implementation(float DeltaTime, FMinimalVi
 
 void AAlsCharacter::RefreshMeshProperties() const
 {
+	auto* CharacterMesh{GetMesh()};
+	if (!IsValid(CharacterMesh))
+	{
+		return;
+	}
+
 	const auto bStandalone{IsNetMode(NM_Standalone)};
 	const auto bDedicatedServer{IsNetMode(NM_DedicatedServer)};
 	const auto bListenServer{IsNetMode(NM_ListenServer)};
@@ -348,7 +371,14 @@ void AAlsCharacter::RefreshMeshProperties() const
 	// Make sure that the pose is always ticked on the server when the character is controlled
 	// by a remote client, otherwise some problems may arise (such as jitter when rolling).
 
-	const auto DefaultTickOption{GetClass()->GetDefaultObject<ThisClass>()->GetMesh()->VisibilityBasedAnimTickOption};
+	EVisibilityBasedAnimTickOption DefaultTickOption{EVisibilityBasedAnimTickOption::OnlyTickMontagesWhenNotRendered};
+	if (const ThisClass* DefaultCharacter = GetClass()->GetDefaultObject<ThisClass>())
+	{
+		if (const USkeletalMeshComponent* DefaultMesh = DefaultCharacter->GetMesh())
+		{
+			DefaultTickOption = DefaultMesh->VisibilityBasedAnimTickOption;
+		}
+	}
 
 	const auto TargetTickOption{
 		!bStandalone && bAuthority && bRemoteAutonomousProxy
@@ -358,10 +388,10 @@ void AAlsCharacter::RefreshMeshProperties() const
 
 	// Keep the default tick option, at least if the target tick option is not required by the plugin to work properly.
 
-	GetMesh()->VisibilityBasedAnimTickOption = FMath::Min(TargetTickOption, DefaultTickOption);
+	CharacterMesh->VisibilityBasedAnimTickOption = FMath::Min(TargetTickOption, DefaultTickOption);
 
 	const auto bMeshIsTicking{
-		GetMesh()->bRecentlyRendered || GetMesh()->VisibilityBasedAnimTickOption <= EVisibilityBasedAnimTickOption::AlwaysTickPose
+		CharacterMesh->bRecentlyRendered || CharacterMesh->VisibilityBasedAnimTickOption <= EVisibilityBasedAnimTickOption::AlwaysTickPose
 	};
 
 	// Use absolute mesh rotation to be able to precisely synchronize character rotation
@@ -388,21 +418,21 @@ void AAlsCharacter::RefreshMeshProperties() const
 		(bUROActive || bAutonomousProxyOnListenServer)
 	};
 
-	if (GetMesh()->IsUsingAbsoluteRotation() != bUseAbsoluteRotation)
+	if (CharacterMesh->IsUsingAbsoluteRotation() != bUseAbsoluteRotation)
 	{
-		GetMesh()->SetUsingAbsoluteRotation(bUseAbsoluteRotation);
+		CharacterMesh->SetUsingAbsoluteRotation(bUseAbsoluteRotation);
 
 		// Instantly update the relative mesh rotation, otherwise it will be incorrect during this tick.
 
-		if (bUseAbsoluteRotation || !IsValid(GetMesh()->GetAttachParent()))
+		if (bUseAbsoluteRotation || !IsValid(CharacterMesh->GetAttachParent()))
 		{
-			GetMesh()->SetRelativeRotation_Direct(
-				GetMesh()->GetRelativeRotationCache().QuatToRotator(GetMesh()->GetComponentQuat()));
+			CharacterMesh->SetRelativeRotation_Direct(
+				CharacterMesh->GetRelativeRotationCache().QuatToRotator(CharacterMesh->GetComponentQuat()));
 		}
 		else
 		{
-			GetMesh()->SetRelativeRotation_Direct(
-				GetMesh()->GetRelativeRotationCache().QuatToRotator(GetActorQuat().Inverse() * GetMesh()->GetComponentQuat()));
+			CharacterMesh->SetRelativeRotation_Direct(
+				CharacterMesh->GetRelativeRotationCache().QuatToRotator(GetActorQuat().Inverse() * CharacterMesh->GetComponentQuat()));
 		}
 	}
 
@@ -1759,6 +1789,44 @@ bool AAlsCharacter::RefreshCustomGroundedNotMovingRotation(const float DeltaTime
 void AAlsCharacter::RefreshGroundedAimingRotation(const float DeltaTime)
 {
 	auto NewActorRotation{GetActorRotation()};
+	const float PreviousActorYaw = NewActorRotation.Yaw;
+	const float ViewYaw = UE_REAL_TO_FLOAT(ViewState.Rotation.Yaw);
+	const bool bAuthorityRemoteProxy = GetLocalRole() >= ROLE_Authority && !IsLocallyControlled();
+
+	if (bAuthorityRemoteProxy)
+	{
+		SetTargetYawAngle(ViewYaw);
+		NewActorRotation.Yaw = ViewYaw;
+		SetActorRotation(NewActorRotation);
+
+		if (AlsTopDownCharacterNetDebug::IsEnabled())
+		{
+			const float AppliedDeltaYaw = FMath::FindDeltaAngleDegrees(PreviousActorYaw, NewActorRotation.Yaw);
+			static TMap<TWeakObjectPtr<const AAlsCharacter>, double> LastLogTimeByCharacter;
+			const double CurrentTime = GetWorld() != nullptr ? GetWorld()->GetTimeSeconds() : 0.0;
+			const double* LastLogTime = LastLogTimeByCharacter.Find(this);
+			if (LastLogTime == nullptr || CurrentTime - *LastLogTime >= 0.2 || FMath::Abs(AppliedDeltaYaw) > 1.0f)
+			{
+				LastLogTimeByCharacter.Add(this, CurrentTime);
+				UE_LOG(
+					LogAlsTopDownCharacterNetDebug,
+					Warning,
+					TEXT("[ServerCharAim] Character=%s ViewYaw=%.2f ActorYawBefore=%.2f ActorYawAfter=%.2f AppliedDeltaYaw=%.4f TargetYaw=%.2f SmoothTargetYaw=%.2f AimingLimit=%.2f Moving=%d HasInput=%d Speed=%.2f Mode=RemoteInstant"),
+					*GetName(),
+					ViewYaw,
+					PreviousActorYaw,
+					NewActorRotation.Yaw,
+					AppliedDeltaYaw,
+					LocomotionState.TargetYawAngle,
+					LocomotionState.SmoothTargetYawAngle,
+					LocomotionState.AimingYawAngleLimit,
+					LocomotionState.bMoving ? 1 : 0,
+					LocomotionState.bHasInput ? 1 : 0,
+					LocomotionState.Speed);
+			}
+		}
+		return;
+	}
 
 	if (!LocomotionState.bHasInput && !LocomotionState.bMoving)
 	{
@@ -1792,6 +1860,33 @@ void AAlsCharacter::RefreshGroundedAimingRotation(const float DeltaTime)
 	}
 
 	SetActorRotation(NewActorRotation);
+
+	if (AlsTopDownCharacterNetDebug::IsEnabled() && GetLocalRole() >= ROLE_Authority && !IsLocallyControlled())
+	{
+		const float AppliedDeltaYaw = FMath::FindDeltaAngleDegrees(PreviousActorYaw, NewActorRotation.Yaw);
+		static TMap<TWeakObjectPtr<const AAlsCharacter>, double> LastLogTimeByCharacter;
+		const double CurrentTime = GetWorld() != nullptr ? GetWorld()->GetTimeSeconds() : 0.0;
+		const double* LastLogTime = LastLogTimeByCharacter.Find(this);
+		if (LastLogTime == nullptr || CurrentTime - *LastLogTime >= 0.2 || FMath::Abs(AppliedDeltaYaw) > 1.0f)
+		{
+			LastLogTimeByCharacter.Add(this, CurrentTime);
+			UE_LOG(
+				LogAlsTopDownCharacterNetDebug,
+				Warning,
+				TEXT("[ServerCharAim] Character=%s ViewYaw=%.2f ActorYawBefore=%.2f ActorYawAfter=%.2f AppliedDeltaYaw=%.4f TargetYaw=%.2f SmoothTargetYaw=%.2f AimingLimit=%.2f Moving=%d HasInput=%d Speed=%.2f Mode=Default"),
+				*GetName(),
+				ViewYaw,
+				PreviousActorYaw,
+				NewActorRotation.Yaw,
+				AppliedDeltaYaw,
+				LocomotionState.TargetYawAngle,
+				LocomotionState.SmoothTargetYawAngle,
+				LocomotionState.AimingYawAngleLimit,
+				LocomotionState.bMoving ? 1 : 0,
+				LocomotionState.bHasInput ? 1 : 0,
+				LocomotionState.Speed);
+		}
+	}
 }
 
 bool AAlsCharacter::ConstrainAimingRotation(FRotator& ActorRotation, const float DeltaTime, const bool bApplySecondaryConstraint)

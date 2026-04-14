@@ -80,48 +80,61 @@ class ALS_API UAlsCharacterMovementComponent : public UCharacterMovementComponen
 public:
 	// If checked, improves the response to interaction from moving kinematic physical
 	// bodies, but may cause some issues when interacting with simulated physical bodies.
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Settings")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ALS|移动组件|设置",
+		Meta = (DisplayName = "允许改进穿透修正", ToolTip = "启用后会改善与运动学刚体交互时的穿透修正，但可能对模拟物理体带来副作用。"))
 	uint8 bAllowImprovedPenetrationAdjustment : 1 {true};
 
 protected:
 	FAlsCharacterNetworkMoveDataContainer MoveDataContainer;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State", Transient)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "ALS|移动组件|状态", Transient,
+		Meta = (DisplayName = "移动设置", ToolTip = "当前移动组件正在使用的 ALS 移动设置。"))
 	TObjectPtr<UAlsMovementSettings> MovementSettings;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State", Transient)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "ALS|移动组件|状态", Transient,
+		Meta = (DisplayName = "步态设置", ToolTip = "当前步态对应的移动参数设置。"))
 	FAlsMovementGaitSettings GaitSettings;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State", Transient)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "ALS|移动组件|状态", Transient,
+		Meta = (DisplayName = "旋转模式", ToolTip = "移动组件当前使用的旋转模式。"))
 	FGameplayTag RotationMode{AlsRotationModeTags::ViewDirection};
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State", Transient)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "ALS|移动组件|状态", Transient,
+		Meta = (DisplayName = "姿态", ToolTip = "移动组件当前使用的姿态。"))
 	FGameplayTag Stance{AlsStanceTags::Standing};
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State", Transient)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "ALS|移动组件|状态", Transient,
+		Meta = (DisplayName = "最大允许步态", ToolTip = "当前可使用的最高步态。"))
 	FGameplayTag MaxAllowedGait{AlsGaitTags::Running};
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State", Transient, Meta = (ClampMin = 0, ClampMax = 3))
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "ALS|移动组件|状态", Transient,
+		Meta = (ClampMin = 0, ClampMax = 3, DisplayName = "步态强度", ToolTip = "用于动画表现的步态强度值。"))
 	float GaitAmount{0.0f};
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State", Transient, Meta = (ClampMin = 0, ForceUnits = "cm/s^2"))
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "ALS|移动组件|状态", Transient,
+		Meta = (ClampMin = 0, ForceUnits = "cm/s^2", DisplayName = "最大步行加速度", ToolTip = "当前步行状态下的最大加速度。"))
 	float MaxAccelerationWalking{0.0f};
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State", Transient)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "ALS|移动组件|状态", Transient,
+		Meta = (DisplayName = "移动模式已锁定", ToolTip = "是否临时锁定移动模式切换。"))
 	uint8 bMovementModeLocked : 1 {false};
 
 	// Used to temporarily prohibit the player from moving the character. Also works for AI-controlled characters.
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State", Transient)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "ALS|移动组件|状态", Transient,
+		Meta = (DisplayName = "输入已阻止", ToolTip = "是否临时阻止角色响应输入移动。对 AI 角色同样有效。"))
 	uint8 bInputBlocked : 1 {false};
 
 	// Valid only on locally controlled characters.
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State", Transient)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "ALS|移动组件|状态", Transient,
+		Meta = (DisplayName = "上一次控制器旋转", ToolTip = "仅对本地控制角色有效，记录上一帧控制器旋转。"))
 	FRotator PreviousControlRotation{ForceInit};
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State", Transient)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "ALS|移动组件|状态", Transient,
+		Meta = (DisplayName = "穿透修正前速度", ToolTip = "执行穿透修正前缓存的速度。"))
 	FVector PrePenetrationAdjustmentVelocity{ForceInit};
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State", Transient)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "ALS|移动组件|状态", Transient,
+		Meta = (DisplayName = "穿透修正前速度有效", ToolTip = "是否存在有效的穿透修正前速度缓存。"))
 	uint8 bPrePenetrationAdjustmentVelocityValid : 1 {false};
 
 public:

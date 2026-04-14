@@ -6,12 +6,29 @@
 #include "Curves/CurveVector.h"
 #include "Engine/World.h"
 #include "GameFramework/Controller.h"
+#include "HAL/IConsoleManager.h"
 #include "Utility/AlsMacros.h"
 #include "Utility/AlsRotation.h"
 #include "Utility/AlsUtility.h"
 #include "Utility/AlsVector.h"
 
 #include UE_INLINE_GENERATED_CPP_BY_NAME(AlsCharacterMovementComponent)
+
+DEFINE_LOG_CATEGORY_STATIC(LogAlsTopDownServerNetDebug, Log, All);
+
+namespace AlsTopDownServerNetDebug
+{
+	static TAutoConsoleVariable<int32> CVarEnable(
+		TEXT("als.TopDown.NetDebug"),
+		0,
+		TEXT("Enable ALS TopDown client/server aim debug logging.\n0: Disabled\n1: Enabled"),
+		ECVF_Default);
+
+	static bool IsEnabled()
+	{
+		return CVarEnable.GetValueOnAnyThread() != 0;
+	}
+}
 
 void FAlsCharacterNetworkMoveData::ClientFillNetworkMoveData(const FSavedMove_Character& Move, const ENetworkMoveType MoveType)
 {
@@ -878,11 +895,34 @@ void UAlsCharacterMovementComponent::MoveAutonomous(const float ClientTimeStamp,
 	if (IsValid(Controller) && IsNetMode(NM_ListenServer) && CharacterOwner->GetRemoteRole() == ROLE_AutonomousProxy)
 	{
 		const auto NewControlRotation{Controller->GetControlRotation()};
+		const float DeltaYaw = FMath::FindDeltaAngleDegrees(PreviousControlRotation.Yaw, NewControlRotation.Yaw);
 
 		auto* Character{Cast<AAlsCharacter>(CharacterOwner)};
 		if (IsValid(Character))
 		{
 			Character->CorrectViewNetworkSmoothing(NewControlRotation, false);
+		}
+
+		if (AlsTopDownServerNetDebug::IsEnabled())
+		{
+			static TMap<TWeakObjectPtr<const ACharacter>, double> LastLogTimeByCharacter;
+			const double CurrentTime = CharacterOwner->GetWorld() != nullptr ? CharacterOwner->GetWorld()->GetTimeSeconds() : 0.0;
+			const double* LastLogTime = LastLogTimeByCharacter.Find(CharacterOwner);
+			if (LastLogTime == nullptr || CurrentTime - *LastLogTime >= 0.2 || FMath::Abs(DeltaYaw) > 1.0f)
+			{
+				LastLogTimeByCharacter.Add(CharacterOwner, CurrentTime);
+				UE_LOG(
+					LogAlsTopDownServerNetDebug,
+					Warning,
+					TEXT("[ServerAim] Character=%s Controller=%s PrevYaw=%.2f NewYaw=%.2f DeltaYaw=%.4f TimeStamp=%.4f DeltaTime=%.4f"),
+					*GetNameSafe(CharacterOwner),
+					*GetNameSafe(Controller),
+					PreviousControlRotation.Yaw,
+					NewControlRotation.Yaw,
+					DeltaYaw,
+					ClientTimeStamp,
+					DeltaTime);
+			}
 		}
 
 		PreviousControlRotation = NewControlRotation;

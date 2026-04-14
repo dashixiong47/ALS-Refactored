@@ -30,17 +30,21 @@ struct ALS_API FAlsAnimNode_CurvesBlend : public FAnimNode_Base
 	GENERATED_BODY()
 
 public:
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Settings")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ALS|动画节点|设置",
+		Meta = (DisplayName = "基础姿势", ToolTip = "曲线混合使用的基础姿势。"))
 	FPoseLink BasePose;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Settings")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ALS|动画节点|设置",
+		Meta = (DisplayName = "曲线姿势", ToolTip = "用于提供曲线值的姿势。"))
 	FPoseLink CurvePose;
 
 protected:
-	UPROPERTY(EditAnywhere, Category = "Settings", Meta = (ClampMin = 0, ClampMax = 1, PinShownByDefault))
+	UPROPERTY(EditAnywhere, Category = "ALS|动画节点|设置",
+		Meta = (ClampMin = 0, ClampMax = 1, PinShownByDefault, DisplayName = "混合量", ToolTip = "基础姿势与曲线姿势之间的混合权重。"))
 	float BlendAmount{1.0f};
 
-	UPROPERTY(EditAnywhere, Category = "Settings")
+	UPROPERTY(EditAnywhere, Category = "ALS|动画节点|设置",
+		Meta = (DisplayName = "混合模式", ToolTip = "曲线混合时采用的模式。"))
 	EAlsCurvesBlendMode BlendMode{EAlsCurvesBlendMode::Accumulate};
 
 public:

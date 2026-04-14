@@ -36,104 +36,135 @@ class ALS_API UAlsAnimationInstance : public UAnimInstance
 	friend UAlsLinkedAnimationInstance;
 
 protected:
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Settings")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "ALS|动画实例|设置",
+		Meta = (DisplayName = "动画实例设置", ToolTip = "ALS 动画实例使用的设置数据资产。"))
 	TObjectPtr<UAlsAnimationInstanceSettings> Settings;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State", Transient)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "ALS|动画实例|状态", Transient,
+		Meta = (DisplayName = "角色", ToolTip = "当前动画实例所驱动的 ALS 角色。"))
 	TObjectPtr<AAlsCharacter> Character;
 
 	// Used to indicate that the animation instance has not been updated for a long time
 	// and its current state may not be correct (such as foot location used in foot lock).
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State", Transient)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "ALS|动画实例|状态", Transient,
+		Meta = (DisplayName = "待更新", ToolTip = "是否需要在下一帧重新完整刷新动画状态。"))
 	uint8 bPendingUpdate : 1 {true};
 
 	// Time of the last teleportation event.
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State", Transient, Meta = (ClampMin = 0))
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "ALS|动画实例|状态", Transient,
+		Meta = (ClampMin = 0, DisplayName = "最近传送时间", ToolTip = "最近一次触发传送事件的时间。"))
 	double TeleportedTime{0.0f};
 
 #if WITH_EDITORONLY_DATA
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State", Transient)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "ALS|动画实例|状态", Transient,
+		Meta = (DisplayName = "显示调试轨迹", ToolTip = "是否显示 ALS 动画调试轨迹。"))
 	uint8 bDisplayDebugTraces : 1 {false};
 
 	mutable TArray<TFunction<void()>> DisplayDebugTracesQueue;
 #endif
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State", Transient)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "ALS|动画实例|状态", Transient,
+		Meta = (DisplayName = "视角模式", ToolTip = "动画实例当前读取到的视角模式。"))
 	FGameplayTag ViewMode{AlsViewModeTags::ThirdPerson};
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State", Transient)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "ALS|动画实例|状态", Transient,
+		Meta = (DisplayName = "移动模式", ToolTip = "动画实例当前读取到的移动模式。"))
 	FGameplayTag LocomotionMode{AlsLocomotionModeTags::Grounded};
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State", Transient)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "ALS|动画实例|状态", Transient,
+		Meta = (DisplayName = "旋转模式", ToolTip = "动画实例当前读取到的旋转模式。"))
 	FGameplayTag RotationMode{AlsRotationModeTags::ViewDirection};
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State", Transient)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "ALS|动画实例|状态", Transient,
+		Meta = (DisplayName = "姿态", ToolTip = "动画实例当前读取到的姿态。"))
 	FGameplayTag Stance{AlsStanceTags::Standing};
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State", Transient)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "ALS|动画实例|状态", Transient,
+		Meta = (DisplayName = "步态", ToolTip = "动画实例当前读取到的步态。"))
 	FGameplayTag Gait{AlsGaitTags::Walking};
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State", Transient)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "ALS|动画实例|状态", Transient,
+		Meta = (DisplayName = "叠加模式", ToolTip = "动画实例当前读取到的叠加模式。"))
 	FGameplayTag OverlayMode{AlsOverlayModeTags::Default};
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State", Transient)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "ALS|动画实例|状态", Transient,
+		Meta = (DisplayName = "移动动作", ToolTip = "动画实例当前读取到的特殊移动动作标签。"))
 	FGameplayTag LocomotionAction;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State", Transient)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "ALS|动画实例|状态", Transient,
+		Meta = (DisplayName = "地面进入模式", ToolTip = "角色进入地面移动时使用的入口模式标签。"))
 	FGameplayTag GroundedEntryMode;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State", Transient)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "ALS|动画实例|状态", Transient,
+		Meta = (DisplayName = "移动基底状态", ToolTip = "动画实例缓存的移动基底状态。"))
 	FAlsMovementBaseState MovementBase;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State", Transient)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "ALS|动画实例|状态", Transient,
+		Meta = (DisplayName = "分层状态", ToolTip = "ALS 动画分层相关状态。"))
 	FAlsLayeringState LayeringState;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State", Transient)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "ALS|动画实例|状态", Transient,
+		Meta = (DisplayName = "姿势状态", ToolTip = "ALS 当前姿势混合相关状态。"))
 	FAlsPoseState PoseState;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State", Transient)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "ALS|动画实例|状态", Transient,
+		Meta = (DisplayName = "视角动画状态", ToolTip = "ALS 视角相关的动画状态。"))
 	FAlsViewAnimationState ViewState;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State", Transient)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "ALS|动画实例|状态", Transient,
+		Meta = (DisplayName = "脊椎状态", ToolTip = "ALS 脊椎旋转与混合状态。"))
 	FAlsSpineState SpineState;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State", Transient)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "ALS|动画实例|状态", Transient,
+		Meta = (DisplayName = "头部状态", ToolTip = "ALS 头部朝向相关状态。"))
 	FAlsHeadState HeadState;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State", Transient)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "ALS|动画实例|状态", Transient,
+		Meta = (DisplayName = "移动动画状态", ToolTip = "ALS 当前移动动画状态数据。"))
 	FAlsLocomotionAnimationState LocomotionState;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State", Transient)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "ALS|动画实例|状态", Transient,
+		Meta = (DisplayName = "倾斜状态", ToolTip = "ALS 当前角色倾斜相关状态。"))
 	FAlsLeanState LeanState;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State", Transient)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "ALS|动画实例|状态", Transient,
+		Meta = (DisplayName = "地面状态", ToolTip = "ALS 当前地面移动相关状态。"))
 	FAlsGroundedState GroundedState;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State", Transient)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "ALS|动画实例|状态", Transient,
+		Meta = (DisplayName = "站立状态", ToolTip = "ALS 当前站立移动相关状态。"))
 	FAlsStandingState StandingState;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State", Transient)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "ALS|动画实例|状态", Transient,
+		Meta = (DisplayName = "蹲伏状态", ToolTip = "ALS 当前蹲伏移动相关状态。"))
 	FAlsCrouchingState CrouchingState;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State", Transient)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "ALS|动画实例|状态", Transient,
+		Meta = (DisplayName = "空中状态", ToolTip = "ALS 当前空中移动相关状态。"))
 	FAlsInAirState InAirState;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State", Transient)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "ALS|动画实例|状态", Transient,
+		Meta = (DisplayName = "脚部状态", ToolTip = "ALS 当前脚步落点与锁定相关状态。"))
 	FAlsFeetState FeetState;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State", Transient)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "ALS|动画实例|状态", Transient,
+		Meta = (DisplayName = "过渡状态", ToolTip = "ALS 当前动画过渡相关状态。"))
 	FAlsTransitionsState TransitionsState;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State", Transient)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "ALS|动画实例|状态", Transient,
+		Meta = (DisplayName = "动态过渡状态", ToolTip = "ALS 当前动态过渡相关状态。"))
 	FAlsDynamicTransitionsState DynamicTransitionsState;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State", Transient)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "ALS|动画实例|状态", Transient,
+		Meta = (DisplayName = "原地旋转状态", ToolTip = "ALS 当前原地旋转状态。"))
 	FAlsRotateInPlaceState RotateInPlaceState;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State", Transient)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "ALS|动画实例|状态", Transient,
+		Meta = (DisplayName = "转身状态", ToolTip = "ALS 当前转身状态。"))
 	FAlsTurnInPlaceState TurnInPlaceState;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State", Transient)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "ALS|动画实例|状态", Transient,
+		Meta = (DisplayName = "布娃娃动画状态", ToolTip = "ALS 当前布娃娃动画相关状态。"))
 	FAlsRagdollingAnimationState RagdollingState;
 
 public:

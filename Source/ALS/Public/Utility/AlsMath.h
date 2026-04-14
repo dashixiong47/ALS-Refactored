@@ -10,13 +10,16 @@ struct ALS_API FAlsSpringFloatState
 	GENERATED_BODY()
 
 public:
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ALS")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ALS|数学工具",
+		Meta = (DisplayName = "速度", ToolTip = "弹簧状态当前累计的速度值。"))
 	float Velocity{ForceInit};
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ALS")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ALS|数学工具",
+		Meta = (DisplayName = "上次目标", ToolTip = "上一帧用于弹簧计算的目标值。"))
 	float PreviousTarget{ForceInit};
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ALS")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ALS|数学工具",
+		Meta = (DisplayName = "状态有效", ToolTip = "当前弹簧状态是否已经完成初始化。"))
 	uint8 bStateValid : 1 {false};
 
 public:

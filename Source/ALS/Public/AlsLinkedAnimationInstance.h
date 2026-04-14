@@ -13,10 +13,12 @@ class ALS_API UAlsLinkedAnimationInstance : public UAnimInstance
 	GENERATED_BODY()
 
 protected:
-	UPROPERTY(VisibleAnywhere, Category = "State", Transient)
+	UPROPERTY(VisibleAnywhere, Category = "ALS|链接动画实例|状态", Transient,
+		Meta = (DisplayName = "父动画实例", ToolTip = "当前链接动画实例对应的父 ALS 动画实例。"))
 	TWeakObjectPtr<UAlsAnimationInstance> Parent;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "State", Transient)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "ALS|链接动画实例|状态", Transient,
+		Meta = (DisplayName = "角色", ToolTip = "当前链接动画实例所驱动的 ALS 角色。"))
 	TObjectPtr<AAlsCharacter> Character;
 
 public:

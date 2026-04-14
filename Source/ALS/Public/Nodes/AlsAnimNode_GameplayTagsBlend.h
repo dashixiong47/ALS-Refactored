@@ -14,11 +14,13 @@ struct ALS_API FAlsAnimNode_GameplayTagsBlend : public FAnimNode_BlendListBase
 	friend UAlsAnimGraphNode_GameplayTagsBlend;
 
 protected:
-	UPROPERTY(EditAnywhere, Category = "Settings", Meta = (PinShownByDefault))
+	UPROPERTY(EditAnywhere, Category = "ALS|动画节点|设置",
+		Meta = (PinShownByDefault, DisplayName = "激活标签", ToolTip = "当前用于选择子姿势的 Gameplay Tag。"))
 	FGameplayTag ActiveTag;
 
 #if WITH_EDITORONLY_DATA
-	UPROPERTY(EditAnywhere, Category = "Settings", Meta = (FoldProperty))
+	UPROPERTY(EditAnywhere, Category = "ALS|动画节点|设置",
+		Meta = (FoldProperty, DisplayName = "标签列表", ToolTip = "该节点可切换的 Gameplay Tag 列表。"))
 	TArray<FGameplayTag> Tags;
 #endif
 

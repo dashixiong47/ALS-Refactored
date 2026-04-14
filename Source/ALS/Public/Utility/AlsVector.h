@@ -9,13 +9,16 @@ struct ALS_API FAlsSpringVectorState
 	GENERATED_BODY()
 
 public:
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ALS")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ALS|向量工具",
+		Meta = (DisplayName = "速度", ToolTip = "向量弹簧状态当前累计的速度值。"))
 	FVector Velocity{ForceInit};
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ALS")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ALS|向量工具",
+		Meta = (DisplayName = "上次目标", ToolTip = "上一帧用于向量弹簧计算的目标值。"))
 	FVector PreviousTarget{ForceInit};
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ALS")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ALS|向量工具",
+		Meta = (DisplayName = "状态有效", ToolTip = "当前向量弹簧状态是否已经完成初始化。"))
 	uint8 bStateValid : 1 {false};
 
 public:
