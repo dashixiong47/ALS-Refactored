@@ -88,10 +88,6 @@ protected:
 		Meta = (ClampMin = "0.0", DisplayName = "最小朝向变化阈值", ToolTip = "只有当鼠标目标朝向变化超过该阈值时才会刷新 ALS TopDownFacingYaw。", ForceUnits = "deg"))
 	float FacingYawEpsilon{0.25f};
 
-	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadOnly, Category = "ALS|俯视角|网络",
-		Meta = (DisplayName = "复制的鼠标瞄准点", ToolTip = "从客户端复制到服务端和其他客户端的鼠标瞄准世界坐标。"))
-	FVector_NetQuantize ReplicatedCursorAimPoint;
-
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "ALS|俯视角|摄像机",
 		Meta = (ClampMin = "0.0", DisplayName = "最小缩放距离", ToolTip = "俯视角摄像机允许的最小弹簧臂长度。", ForceUnits = "cm"))
 	float ZoomMin{600.0f};
@@ -156,14 +152,10 @@ public:
 		Meta = (DisplayName = "按世界坐标计算目标偏航", ToolTip = "根据目标世界坐标计算俯视角瞄准偏航，不会直接转动角色。"))
 	float CalculateTopDownAimYaw(const FVector& WorldTarget) const;
 
-	UFUNCTION(Server, Unreliable)
-	void ServerSetCursorAimPoint(FVector_NetQuantize CursorPoint);
-
 private:
 	void UpdateCameraAnchor(float DeltaTime);
 	void UpdateCameraZoom(float DeltaTime);
 	void ApplyCameraAnchorTransform() const;
 	bool ResolveDeadZoneState(float DeltaTime, FVector& OutDesiredAnchor, bool& bOutShouldRecenter);
 	bool DeprojectScreenPositionToGround(const FVector2D& ScreenPosition, const FPlane& GroundPlane, FVector& OutWorldPoint) const;
-	void ApplyReplicatedCursorAim();
 };

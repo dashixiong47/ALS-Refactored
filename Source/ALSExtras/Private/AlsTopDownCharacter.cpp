@@ -5,8 +5,6 @@
 #include "GameFramework/PlayerController.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Kismet/KismetMathLibrary.h"
-#include "Net/UnrealNetwork.h"
-#include "Net/Core/PushModel/PushModel.h"
 #include UE_INLINE_GENERATED_CPP_BY_NAME(AlsTopDownCharacter)
 
 AAlsTopDownCharacter::AAlsTopDownCharacter()
@@ -27,7 +25,7 @@ AAlsTopDownCharacter::AAlsTopDownCharacter()
 	Camera->SetupAttachment(SpringArm, USpringArmComponent::SocketName);
 	Camera->bUsePawnControlRotation = false;
 
-	bUseTopDownFacing = false;
+	bUseTopDownFacing = true;
 	bUseControllerRotationYaw = false;
 	bDesiredAiming = true;
 
@@ -40,16 +38,6 @@ AAlsTopDownCharacter::AAlsTopDownCharacter()
 	TargetZoom = SpringArm->TargetArmLength;
 }
 
-void AAlsTopDownCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
-{
-	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-
-	FDoRepLifetimeParams Parameters;
-	Parameters.bIsPushBased = true;
-	Parameters.Condition = COND_SkipOwner;
-	DOREPLIFETIME_WITH_PARAMS_FAST(ThisClass, ReplicatedCursorAimPoint, Parameters);
-}
-
 void AAlsTopDownCharacter::Tick(const float DeltaTime)
 {
 	Super::Tick(DeltaTime);
@@ -57,12 +45,6 @@ void AAlsTopDownCharacter::Tick(const float DeltaTime)
 	UpdateCameraAnchor(DeltaTime);
 	UpdateCameraZoom(DeltaTime);
 	ApplyCameraAnchorTransform();
-
-	// 非本地控制的角色使用复制的瞄准点
-	if (!IsLocallyControlled() && GetLocalRole() != ROLE_Authority)
-	{
-		ApplyReplicatedCursorAim();
-	}
 }
 
 void AAlsTopDownCharacter::CalcCamera(const float DeltaTime, FMinimalViewInfo& ViewInfo)
@@ -318,27 +300,4 @@ bool AAlsTopDownCharacter::DeprojectScreenPositionToGround(
 
 	OutWorldPoint = PlaneIntersection;
 	return true;
-}
-
-void AAlsTopDownCharacter::ServerSetCursorAimPoint_Implementation(FVector_NetQuantize CursorPoint)
-{
-	ReplicatedCursorAimPoint = CursorPoint;
-	MARK_PROPERTY_DIRTY_FROM_NAME(AAlsTopDownCharacter, ReplicatedCursorAimPoint, this);
-
-	// 服务端立即应用
-	ApplyReplicatedCursorAim();
-}
-
-void AAlsTopDownCharacter::ApplyReplicatedCursorAim()
-{
-	if (IsLocallyControlled())
-	{
-		return; // 本地控制的角色不使用复制数据
-	}
-
-	const float NewYaw = CalculateTopDownAimYaw(ReplicatedCursorAimPoint);
-	CachedFacingYaw = NewYaw;
-
-	// 更新 TopDownFacingYaw 以驱动 ALS 的旋转系统
-	SetTopDownFacingYaw(NewYaw);
 }

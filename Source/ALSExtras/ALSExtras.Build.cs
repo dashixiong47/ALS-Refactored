@@ -11,7 +11,7 @@ public class ALSExtras : ModuleRules
 		CppCompileWarningSettings.NonInlinedGenCppWarningLevel = WarningLevel.Warning;
 
 		PublicDependencyModuleNames.AddRange([
-			"Core", "CoreUObject", "Engine", "AIModule", "ALS", "NetCore"
+			"Core", "CoreUObject", "Engine", "AIModule", "ALS"
 		]);
 
 		PrivateDependencyModuleNames.AddRange([

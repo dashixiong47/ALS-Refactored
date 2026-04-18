@@ -149,12 +149,6 @@ bool AAlsTopDownPlayerController::UpdateAimFromCursor()
 		SmoothedAimWorldPoint = CursorWorldPoint;
 	}
 
-	// 发送到服务端（仅本地控制器）
-	if (TopDownCharacter->IsLocallyControlled())
-	{
-		TopDownCharacter->ServerSetCursorAimPoint(FVector_NetQuantize(SmoothedAimWorldPoint));
-	}
-
 	return ApplyAimYaw(TopDownCharacter->CalculateTopDownAimYaw(SmoothedAimWorldPoint));
 }
 
@@ -306,6 +300,13 @@ bool AAlsTopDownPlayerController::ApplyAimYaw(const float NewYaw)
 	SetControlRotation(FRotator{0.0f, FMath::UnwindDegrees(NewYaw), 0.0f});
 	LastAppliedAimYaw = FMath::UnwindDegrees(NewYaw);
 	LastAimUpdateTime = CurrentTime;
+
+	// 同时更新角色的 TopDown 朝向
+	if (AAlsTopDownCharacter* TopDownCharacter = ResolveTopDownCharacter())
+	{
+		TopDownCharacter->SetTopDownFacingYaw(NewYaw);
+	}
+
 	if (bDebugEnabled)
 	{
 		UE_LOG(
